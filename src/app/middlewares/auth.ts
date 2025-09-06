@@ -5,6 +5,7 @@ import config from '../config';
 import AppError from '../error/AppError';
 import { AuthRequest, IJWTPayload } from '../modules/auth/auth.interface';
 import { User } from '../modules/auth/auth.model';
+import { AUTH_MESSAGES } from '../modules/auth/auth.constant';
 import { catchAsync } from '../utils/catchAsync';
 
 type UserRole = 'user' | 'admin';
@@ -42,10 +43,22 @@ const auth = (...requiredRoles: UserRole[]) => {
         if (error instanceof jwt.TokenExpiredError) {
           throw new AppError(
             StatusCodes.UNAUTHORIZED,
-            'Access token has expired'
+            AUTH_MESSAGES.TOKEN_REFRESH_REQUIRED
           );
         }
         throw new AppError(StatusCodes.UNAUTHORIZED, 'Invalid access token');
+      }
+
+      // Check if token is close to expiry (within 30 minutes)
+      const currentTime = Math.floor(Date.now() / 1000);
+      const expiryTime = decoded.exp || 0;
+      const timeUntilExpiry = expiryTime - currentTime;
+      const thirtyMinutes = 30 * 60; // 30 minutes in seconds
+
+      // Add header to suggest token refresh if close to expiry
+      if (timeUntilExpiry > 0 && timeUntilExpiry < thirtyMinutes) {
+        res.setHeader('X-Token-Refresh-Suggested', 'true');
+        res.setHeader('X-Token-Expires-In', timeUntilExpiry.toString());
       }
 
       // Check if user exists and is active

@@ -20,8 +20,8 @@ export const AUTH_CONSTANTS = {
   },
 
   TOKEN_EXPIRY: {
-    ACCESS_TOKEN: '15m',
-    REFRESH_TOKEN: '7d',
+    ACCESS_TOKEN: '4h', // Increased from 15m to 4 hours
+    REFRESH_TOKEN: '30d', // Increased from 7d to 30 days
   },
 
   SOCIAL_PLATFORMS: {
@@ -51,6 +51,7 @@ export const AUTH_MESSAGES = {
   INSUFFICIENT_PERMISSIONS: 'Insufficient permissions',
   CURRENT_PASSWORD_INCORRECT: 'Current password is incorrect',
   SOCIAL_ACCOUNT_EXISTS: 'Social account already connected',
+  TOKEN_REFRESH_REQUIRED: 'Access token expired, please refresh',
 } as const;
 
 export const USER_ROLE = {

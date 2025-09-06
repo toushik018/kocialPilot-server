@@ -176,7 +176,7 @@ const logoutUser = async (refreshToken: string): Promise<void> => {
 
 const refreshToken = async (
   token: string
-): Promise<{ accessToken: string }> => {
+): Promise<{ accessToken: string; refreshToken?: string }> => {
   if (!token) {
     throw new AppError(StatusCodes.UNAUTHORIZED, 'Refresh token is required');
   }
@@ -187,7 +187,13 @@ const refreshToken = async (
       token,
       config.jwt_refresh_secret as string
     ) as IJWTPayload;
-  } catch {
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw new AppError(
+        StatusCodes.UNAUTHORIZED,
+        'Refresh token has expired. Please log in again.'
+      );
+    }
     throw new AppError(StatusCodes.UNAUTHORIZED, AUTH_MESSAGES.INVALID_TOKEN);
   }
 
@@ -197,7 +203,7 @@ const refreshToken = async (
     throw new AppError(StatusCodes.UNAUTHORIZED, AUTH_MESSAGES.USER_NOT_FOUND);
   }
 
-  // Generate new access token
+  // Generate new tokens
   const jwtPayload: IJWTPayload = {
     userId: user._id.toString(),
     email: user.email,
@@ -210,7 +216,17 @@ const refreshToken = async (
     config.jwt_access_expires_in as string
   );
 
-  return { accessToken: newAccessToken };
+  // Generate new refresh token for enhanced security (token rotation)
+  const newRefreshToken = createToken(
+    jwtPayload,
+    config.jwt_refresh_secret as string,
+    config.jwt_refresh_expires_in as string
+  );
+
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken
+  };
 };
 
 const getUserProfile = async (userId: string) => {

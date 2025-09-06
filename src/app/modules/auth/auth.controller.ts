@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import config from '../../config';
+import AppError from '../../error/AppError';
 import { catchAsync } from '../../utils/catchAsync';
 import { AUTH_MESSAGES } from './auth.constant';
 import { AuthRequest } from './auth.interface';
@@ -41,7 +42,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
         ? '.kocial-pilot.vercel.app'
         : 'localhost',
     sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
   res.status(StatusCodes.OK).json({
@@ -86,14 +87,59 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
 });
 
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const { refreshToken } = req.cookies;
-  const result = await AuthService.refreshToken(refreshToken);
+  // Try to get refresh token from cookie first, then from body
+  const refreshTokenValue = req.cookies.refreshToken || req.body.refreshToken;
+
+  if (!refreshTokenValue) {
+    throw new AppError(
+      StatusCodes.UNAUTHORIZED,
+      'Refresh token is required'
+    );
+  }
+
+  const result = await AuthService.refreshToken(refreshTokenValue);
+
+  // Set new refresh token as cookie if we got one
+  if (result.refreshToken) {
+    res.cookie('refreshToken', result.refreshToken, {
+      secure: config.NODE_ENV === 'production',
+      httpOnly: true,
+      domain:
+        config.NODE_ENV === 'production'
+          ? '.kocial-pilot.vercel.app'
+          : 'localhost',
+      sameSite: config.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+  }
 
   res.status(StatusCodes.OK).json({
     success: true,
     message: AUTH_MESSAGES.TOKEN_REFRESH_SUCCESS,
     statusCode: StatusCodes.OK,
-    data: result,
+    data: {
+      accessToken: result.accessToken,
+      ...(result.refreshToken && { refreshToken: result.refreshToken })
+    },
+  });
+});
+
+const verifyToken = catchAsync(async (req: AuthRequest, res: Response) => {
+  // If we reach here, the token is valid (auth middleware passed)
+  const user = req.user!;
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    message: 'Token is valid',
+    statusCode: StatusCodes.OK,
+    data: {
+      user: {
+        userId: user.userId,
+        email: user.email,
+        role: user.role,
+      },
+      expiresAt: user.exp ? new Date(user.exp * 1000).toISOString() : null,
+    },
   });
 });
 
@@ -165,6 +211,7 @@ export const AuthController = {
   loginUser,
   logoutUser,
   refreshToken,
+  verifyToken,
   getProfile,
   updateProfile,
   changePassword,

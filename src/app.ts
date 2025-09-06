@@ -14,8 +14,10 @@ const app: Application = express();
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ limit: '200mb', extended: true }));
 
-// Serve static files from the uploads directory
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Serve static files from the uploads directory (for local storage fallback)
+if (process.env.NODE_ENV !== 'production' && process.env.USE_CLOUDINARY !== 'true') {
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+}
 
 // Enhanced CORS configuration for kocial-pilot
 const corsConfig = {

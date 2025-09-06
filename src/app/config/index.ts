@@ -23,6 +23,13 @@ export default {
     apiKey: process.env.OPENAI_API_KEY,
   },
 
+  // Cloudinary Configuration
+  cloudinary: {
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  },
+
   // File Upload Configuration
   upload_dir: process.env.UPLOAD_DIR || 'uploads',
   max_file_size: process.env.MAX_FILE_SIZE || '10mb',

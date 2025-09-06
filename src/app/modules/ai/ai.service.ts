@@ -9,17 +9,43 @@ const openai = new OpenAI({
 
 /**
  * Generate a caption for an image
- * @param imagePath Path to the image file
+ * @param imagePath Path to the image file or Cloudinary URL
  * @returns Generated caption and hashtags
  */
 const generateImageCaption = async (imagePath: string) => {
   try {
-    // Read the image file using fs instead of fetch
-    const imageBuffer = await fs.readFile(imagePath);
-    const base64Image = imageBuffer.toString('base64');
-    const mimeType = 'image/jpeg'; // Assuming JPEG format, adjust if needed
+    let base64Image: string;
+    let mimeType = 'image/jpeg';
 
-    // No need for FormData in Node.js environment
+    if (imagePath.startsWith('http')) {
+      // Cloudinary or external URL - fetch the image
+      const response = await fetch(imagePath);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image from URL: ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      base64Image = buffer.toString('base64');
+      
+      // Try to determine mime type from response headers or URL
+      const contentType = response.headers.get('content-type');
+      if (contentType) {
+        mimeType = contentType;
+      } else {
+        // Fallback: guess from URL extension
+        const urlLower = imagePath.toLowerCase();
+        if (urlLower.includes('.png')) mimeType = 'image/png';
+        else if (urlLower.includes('.webp')) mimeType = 'image/webp';
+        else if (urlLower.includes('.gif')) mimeType = 'image/gif';
+        // Default to jpeg for others
+      }
+    } else {
+      // Local file path
+      const imageBuffer = await fs.readFile(imagePath);
+      base64Image = imageBuffer.toString('base64');
+      // Keep default mimeType = 'image/jpeg'
+    }
 
     // Call OpenAI API to generate caption
     const response = await openai.chat.completions.create({
@@ -101,15 +127,41 @@ const generateImageCaption = async (imagePath: string) => {
 
 /**
  * Generate alt text for an image
- * @param imagePath Path to the image file
+ * @param imagePath Path to the image file or Cloudinary URL
  * @returns Generated alt text
  */
 const generateAltText = async (imagePath: string) => {
   try {
-    // Read the image file using fs in Node.js environment
-    const imageBuffer = await fs.readFile(imagePath);
-    const base64Image = imageBuffer.toString('base64');
-    const mimeType = 'image/jpeg'; // Assuming JPEG format, adjust if needed
+    let base64Image: string;
+    let mimeType = 'image/jpeg';
+
+    if (imagePath.startsWith('http')) {
+      // Cloudinary or external URL - fetch the image
+      const response = await fetch(imagePath);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image from URL: ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      base64Image = buffer.toString('base64');
+      
+      // Try to determine mime type from response headers or URL
+      const contentType = response.headers.get('content-type');
+      if (contentType) {
+        mimeType = contentType;
+      } else {
+        // Fallback: guess from URL extension
+        const urlLower = imagePath.toLowerCase();
+        if (urlLower.includes('.png')) mimeType = 'image/png';
+        else if (urlLower.includes('.webp')) mimeType = 'image/webp';
+        else if (urlLower.includes('.gif')) mimeType = 'image/gif';
+      }
+    } else {
+      // Local file path
+      const imageBuffer = await fs.readFile(imagePath);
+      base64Image = imageBuffer.toString('base64');
+    }
 
     // Call OpenAI API to generate alt text
     const response = await openai.chat.completions.create({

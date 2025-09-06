@@ -3,6 +3,7 @@ import { MongoError } from 'mongodb';
 import path from 'path';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
+import { cloudinary } from '../../middlewares/multer';
 import { IImage } from './image.interface';
 import { Image } from './image.model';
 
@@ -20,78 +21,54 @@ interface MulterFile {
 
 const saveImage = async (file: MulterFile, userId: string): Promise<IImage> => {
   try {
-    // Generate a truly unique filename using UUID
-    const ext = path.extname(file.originalname);
-    const uniqueFilename = `${uuidv4()}${ext}`;
+    let imageData: Partial<IImage>;
 
-    // Update the file path with the new unique filename
-    const oldPath = file.path;
-    const newPath = path.join(path.dirname(oldPath), uniqueFilename);
+    // Check if file was uploaded to Cloudinary
+    if (file.path && file.path.startsWith('http')) {
+      // Cloudinary upload
+      const cloudinaryFile = file as MulterFile & {
+        public_id?: string;
+        width?: number;
+        height?: number;
+      };
 
-    // Rename the file to use the unique filename
-    fs.renameSync(oldPath, newPath);
-
-    // Update file object
-    file.filename = uniqueFilename;
-    file.path = newPath;
-
-    // Get image dimensions using sharp
-    const metadata = await sharp(newPath).metadata();
-
-    // Create image record
-    const imageData: Partial<IImage> = {
-      filename: uniqueFilename,
-      original_filename: file.originalname,
-      file_path: path
-        .join('uploads', 'images', uniqueFilename)
-        .replace(/\\/g, '/'),
-      file_size: file.size,
-      mime_type: file.mimetype,
-      width: metadata.width || 0,
-      height: metadata.height || 0,
-      is_used: false,
-      uploaded_at: new Date(),
-      user_id: userId,
-    };
-
-    // Save to database
-    const image = await Image.create(imageData);
-    return image;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error(`Error saving image: ${error.message}`);
-    }
-    throw new Error('Error saving image: Unknown error');
-
-    // Handle duplicate key error (though this should be very rare with UUID)
-    // Check if error is a MongoDB duplicate key error
-    const mongoError = error as MongoError;
-    if (mongoError.code === 11000) {
-      // Handle duplicate key error by generating a new unique filename
-
-      // Generate an even more unique filename with timestamp + UUID
+      imageData = {
+        filename: cloudinaryFile.filename || cloudinaryFile.public_id,
+        original_filename: file.originalname,
+        file_path: cloudinaryFile.path, // This is the Cloudinary URL
+        file_size: file.size,
+        mime_type: file.mimetype,
+        width: cloudinaryFile.width || 0,
+        height: cloudinaryFile.height || 0,
+        is_used: false,
+        uploaded_at: new Date(),
+        user_id: userId,
+        cloudinary_public_id: cloudinaryFile.public_id, // Store for potential deletion
+      };
+    } else {
+      // Local file upload (fallback)
       const ext = path.extname(file.originalname);
-      const timestampFilename = `${Date.now()}-${uuidv4()}${ext}`;
+      const uniqueFilename = `${uuidv4()}${ext}`;
 
-      // Update paths
-      const newPath = path.join(
-        process.cwd(),
-        'uploads',
-        'images',
-        timestampFilename
-      );
-      fs.renameSync(file.path, newPath);
+      // Update the file path with the new unique filename
+      const oldPath = file.path;
+      const newPath = path.join(path.dirname(oldPath), uniqueFilename);
 
-      file.filename = timestampFilename;
+      // Rename the file to use the unique filename
+      fs.renameSync(oldPath, newPath);
 
-      // Retry with new filename
+      // Update file object
+      file.filename = uniqueFilename;
+      file.path = newPath;
+
+      // Get image dimensions using sharp
       const metadata = await sharp(newPath).metadata();
 
-      const imageData: Partial<IImage> = {
-        filename: timestampFilename,
+      imageData = {
+        filename: uniqueFilename,
         original_filename: file.originalname,
         file_path: path
-          .join('uploads', 'images', timestampFilename)
+          .join('uploads', 'images', uniqueFilename)
           .replace(/\\/g, '/'),
         file_size: file.size,
         mime_type: file.mimetype,
@@ -101,12 +78,59 @@ const saveImage = async (file: MulterFile, userId: string): Promise<IImage> => {
         uploaded_at: new Date(),
         user_id: userId,
       };
-
-      const image = await Image.create(imageData);
-      return image;
     }
 
-    throw error;
+    // Save to database
+    const image = await Image.create(imageData);
+    return image;
+  } catch (error: unknown) {
+    // Handle duplicate key error (though this should be very rare with UUID)
+    const mongoError = error as MongoError;
+    if (mongoError.code === 11000) {
+      // For local files, handle duplicate key error by generating a new unique filename
+      if (file.path && !file.path.startsWith('http')) {
+        const ext = path.extname(file.originalname);
+        const timestampFilename = `${Date.now()}-${uuidv4()}${ext}`;
+
+        // Update paths
+        const newPath = path.join(
+          process.cwd(),
+          'uploads',
+          'images',
+          timestampFilename
+        );
+        fs.renameSync(file.path, newPath);
+
+        file.filename = timestampFilename;
+
+        // Retry with new filename
+        const metadata = await sharp(newPath).metadata();
+
+        const imageData: Partial<IImage> = {
+          filename: timestampFilename,
+          original_filename: file.originalname,
+          file_path: path
+            .join('uploads', 'images', timestampFilename)
+            .replace(/\\/g, '/'),
+          file_size: file.size,
+          mime_type: file.mimetype,
+          width: metadata.width || 0,
+          height: metadata.height || 0,
+          is_used: false,
+          uploaded_at: new Date(),
+          user_id: userId,
+        };
+
+        const image = await Image.create(imageData);
+        return image;
+      }
+    }
+
+    // Handle other errors
+    if (error instanceof Error) {
+      throw new Error(`Error saving image: ${error.message}`);
+    }
+    throw new Error('Error saving image: Unknown error');
   }
 };
 
@@ -155,11 +179,22 @@ const deleteImage = async (id: string): Promise<IImage | null> => {
   try {
     const image = await Image.findByIdAndDelete(id);
 
-    // Delete file from disk if image record exists
+    // Delete file from storage if image record exists
     if (image) {
-      const filePath = path.join(process.cwd(), image.file_path);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      if (image.cloudinary_public_id) {
+        // Delete from Cloudinary
+        try {
+          await cloudinary.uploader.destroy(image.cloudinary_public_id);
+        } catch (cloudinaryError) {
+          console.error('Failed to delete image from Cloudinary:', cloudinaryError);
+          // Continue execution even if Cloudinary deletion fails
+        }
+      } else {
+        // Delete from local storage
+        const filePath = path.join(process.cwd(), image.file_path);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
       }
     }
 

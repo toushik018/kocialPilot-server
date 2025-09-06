@@ -22,6 +22,12 @@ router.post(
 router.post('/logout', AuthController.logoutUser);
 router.post('/refresh-token', AuthController.refreshToken);
 
+// Auto-refresh endpoint for when token is near expiry
+router.post('/auto-refresh', AuthController.refreshToken);
+
+// Token verification endpoint
+router.get('/verify-token', auth('user', 'admin'), AuthController.verifyToken);
+
 // Protected routes
 router.get('/profile', auth('user', 'admin'), AuthController.getProfile);
 

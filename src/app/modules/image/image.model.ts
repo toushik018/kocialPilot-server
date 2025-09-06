@@ -45,6 +45,10 @@ const ImageSchema = new Schema<IImage>(
       required: true,
       index: true, // Add index for user_id queries
     },
+    cloudinary_public_id: {
+      type: String,
+      required: false, // Optional field for Cloudinary images
+    },
   },
   {
     timestamps: false,

@@ -35,15 +35,66 @@ interface CalendarData {
 }
 
 const createPost = catchAsync(async (req: CustomRequest, res: Response) => {
-  const postData = req.body as IMongoPost;
-  const result = await MongoPostService.createPost(postData);
+  try {
+    console.log('📝 Creating post with data:', req.body);
+    console.log('👤 User info:', {
+      userId: req.user?.userId,
+      email: req.user?.email,
+      username: req.user?.username
+    });
 
-  sendResponse<IMongoPost>(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Post created successfully',
-    data: result,
-  });
+    const postData = req.body as IMongoPost;
+
+    // Validate image URL format to prevent duplicates from AI upload
+    if (postData.image_url) {
+      // Check if this is an invalid local path format for Cloudinary images
+      if (postData.image_url.startsWith('/uploads/') &&
+        !postData.image_url.includes('/images/')) {
+        console.log('🚫 Detected invalid image URL format, likely from AI upload. Skipping duplicate post creation.');
+        return sendResponse(res, {
+          statusCode: httpStatus.CONFLICT,
+          success: false,
+          message: 'Post already created through AI upload process',
+        });
+      }
+    }
+
+    // Get user info from auth middleware
+    const userId = req.user?.userId;
+    const userEmail = req.user?.email;
+    const username = req.user?.username || userEmail?.split('@')[0] || '';
+
+    if (!userId || !userEmail) {
+      console.error('❌ User authentication failed');
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'User authentication required',
+      });
+    }
+
+    // Add user info to post data
+    const postWithUserData = {
+      ...postData,
+      user_id: userId,
+      email: userEmail,
+      username: username,
+    };
+
+    console.log('🚀 Creating post with final data:', postWithUserData);
+    const result = await MongoPostService.createPost(postWithUserData);
+    console.log('✅ Post created successfully:', result._id);
+
+    sendResponse<IMongoPost>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Post created successfully',
+      data: result,
+    });
+  } catch (error) {
+    console.error('❌ Error in createPost controller:', error);
+    throw error; // Re-throw to be handled by catchAsync
+  }
 });
 
 const uploadImagePost = catchAsync(

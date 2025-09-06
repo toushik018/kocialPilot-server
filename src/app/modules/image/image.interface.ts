@@ -12,6 +12,7 @@ export type IImage = {
   is_used: boolean;
   uploaded_at: Date;
   user_id: string;
+  cloudinary_public_id?: string; // Optional for Cloudinary images
 };
 
 export type ImageModel = Model<IImage>;

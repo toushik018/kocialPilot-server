@@ -5,7 +5,9 @@ import { MongoPostController } from './mongo-posts.controller';
 
 const router = express.Router();
 
+// Create post endpoints (both for compatibility)
 router.post('/', auth(), MongoPostController.createPost);
+router.post('/create', auth(), MongoPostController.createPost);
 
 // Image upload endpoint with multer middleware
 router.post(
@@ -14,9 +16,6 @@ router.post(
   upload.single('image'),
   MongoPostController.uploadImagePost
 );
-
-// Create post endpoint for frontend
-router.post('/create', auth(), MongoPostController.createPost);
 
 // Get optimal schedule time
 router.get(
