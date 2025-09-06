@@ -28,7 +28,7 @@ const corsConfig = {
       'http://localhost:3000',
       'http://localhost:5173',
       // Production URLs (update these with your actual domains)
-      'https://kocial-pilot.vercel.app',
+      'https://kocial-pilot-client.vercel.app',
       'https://*.kocial-pilot.vercel.app',
     ];
 
