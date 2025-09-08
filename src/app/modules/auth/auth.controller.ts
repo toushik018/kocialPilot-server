@@ -31,7 +31,7 @@ const registerUser = catchAsync(async (req: Request, res: Response) => {
 const loginUser = catchAsync(async (req: Request, res: Response) => {
   console.log('Login request body:', req.body);
   const result = await AuthService.loginUser(req.body);
-  const { refreshToken, accessToken, user } = result;
+  const { refreshToken, accessToken, user, expiresAt } = result;
 
   // Set refresh token as httpOnly cookie
   res.cookie('refreshToken', refreshToken, {
@@ -51,6 +51,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     data: {
       accessToken,
+      expiresAt,
       user: {
         _id: user._id,
         email: user.email,
@@ -119,7 +120,8 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     data: {
       accessToken: result.accessToken,
-      ...(result.refreshToken && { refreshToken: result.refreshToken })
+      ...(result.refreshToken && { refreshToken: result.refreshToken }),
+      expiresAt: result.expiresAt
     },
   });
 });

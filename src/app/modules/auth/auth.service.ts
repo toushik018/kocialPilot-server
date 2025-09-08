@@ -10,14 +10,12 @@ import {
   ILoginRequest,
   IRegisterRequest,
   ISocialAccountRequest,
-  IUpdateProfileRequest,
+  IUserUpdateRequest
 } from './auth.interface';
 import { User } from './auth.model';
 import { createToken, validatePassword } from './auth.utils';
 
-const createUser = async (
-  payload: IRegisterRequest
-): Promise<IAuthResponse> => {
+const createUser = async (payload: IRegisterRequest): Promise<IAuthResponse> => {
   const { email, password, firstName, lastName } = payload;
 
   // Validate password strength
@@ -76,6 +74,9 @@ const createUser = async (
     config.jwt_refresh_expires_in as string
   );
 
+  // Calculate token expiry time in milliseconds
+  const expiresAt = Date.now() + 4 * 60 * 60 * 1000; // 4 hours
+
   return {
     user: {
       _id: user._id.toString(),
@@ -91,6 +92,7 @@ const createUser = async (
     },
     accessToken,
     refreshToken,
+    expiresAt,
   };
 };
 
@@ -144,6 +146,9 @@ const loginUser = async (payload: ILoginRequest): Promise<IAuthResponse> => {
     config.jwt_refresh_expires_in as string
   );
 
+  // Calculate token expiry time in milliseconds
+  const expiresAt = Date.now() + 4 * 60 * 60 * 1000; // 4 hours
+
   return {
     user: {
       _id: user._id.toString(),
@@ -159,6 +164,7 @@ const loginUser = async (payload: ILoginRequest): Promise<IAuthResponse> => {
     },
     accessToken,
     refreshToken,
+    expiresAt,
   };
 };
 
@@ -176,7 +182,7 @@ const logoutUser = async (refreshToken: string): Promise<void> => {
 
 const refreshToken = async (
   token: string
-): Promise<{ accessToken: string; refreshToken?: string }> => {
+): Promise<{ accessToken: string; refreshToken?: string; expiresAt: number }> => {
   if (!token) {
     throw new AppError(StatusCodes.UNAUTHORIZED, 'Refresh token is required');
   }
@@ -223,9 +229,13 @@ const refreshToken = async (
     config.jwt_refresh_expires_in as string
   );
 
+  // Calculate token expiry time in milliseconds
+  const expiryTime = Date.now() + 4 * 60 * 60 * 1000; // 4 hours
+
   return {
     accessToken: newAccessToken,
-    refreshToken: newRefreshToken
+    refreshToken: newRefreshToken,
+    expiresAt: expiryTime
   };
 };
 
@@ -239,7 +249,7 @@ const getUserProfile = async (userId: string) => {
 
 const updateUserProfile = async (
   userId: string,
-  payload: IUpdateProfileRequest
+  payload: IUserUpdateRequest
 ) => {
   const user = await User.findById(userId);
   if (!user) {

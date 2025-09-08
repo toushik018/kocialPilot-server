@@ -39,15 +39,16 @@ export interface IUser extends IBaseDocument {
   isActive: boolean;
   role: 'user' | 'admin';
   preferences: {
-    timezone: string;
-    language: string;
+    timezone?: string;
+    language?: string;
+    theme?: string;
     notifications: {
       email: boolean;
       push: boolean;
     };
   };
   socialAccounts: ISocialAccount[];
-  comparePassword(candidatePassword: string): Promise<boolean>;
+  comparePassword(_password: string): Promise<boolean>;
 
   // Virtual fields
   username?: string;
@@ -72,19 +73,21 @@ export interface IChangePasswordRequest {
   newPassword: string;
 }
 
-export interface IUpdateProfileRequest {
+export interface IUserUpdateRequest {
   firstName?: string;
   lastName?: string;
   profilePicture?: string;
   preferences?: {
     timezone?: string;
     language?: string;
+    theme?: string;
     notifications?: {
       email?: boolean;
       push?: boolean;
     };
   };
 }
+
 
 export interface ISocialAccountRequest {
   platform: 'facebook' | 'instagram' | 'twitter' | 'linkedin';
@@ -97,20 +100,10 @@ export interface ISocialAccountRequest {
 
 // Response Interfaces
 export interface IAuthResponse {
-  user: {
-    _id: string;
-    email: string;
-    username?: string;
-    name?: string;
-    firstName?: string;
-    lastName?: string;
-    profilePicture?: string;
-    isEmailVerified: boolean;
-    role: string;
-    preferences?: any;
-  };
+  user: Partial<Omit<IUser, 'password' | 'comparePassword'>>;
   accessToken: string;
   refreshToken?: string;
+  expiresAt: number;
 }
 
 // Authenticated Request Interface
