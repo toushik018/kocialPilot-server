@@ -8,6 +8,7 @@ import { MongoPdfRoutes } from '../app/modules/mongo-pdf/mongo-pdf.route';
 import { MongoPostRoutes } from '../app/modules/mongo-posts/mongo-posts.route';
 import { ScheduleRoutes } from '../app/modules/schedule/schedule.route';
 import { SocialMediaRoutes } from '../app/modules/social-media/social-media.route';
+import { VideoRoutes } from '../app/modules/video/video.route';
 
 const router = Router();
 
@@ -43,6 +44,10 @@ const moduleRoutes = [
   {
     path: '/ai',
     route: AIRoutes,
+  },
+  {
+    path: '/videos',
+    route: VideoRoutes,
   },
 ];
 

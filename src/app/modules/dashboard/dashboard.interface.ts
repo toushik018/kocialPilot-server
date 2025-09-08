@@ -3,6 +3,9 @@ export type IDashboardStats = {
   publishedPosts: number;
   scheduledPosts: number;
   draftPosts: number;
+  totalImages: number;
+  totalVideos: number;
+  totalMedia: number;
   engagementRate: number;
   recentActivity: {
     date: Date;

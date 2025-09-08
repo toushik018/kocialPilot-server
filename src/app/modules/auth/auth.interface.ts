@@ -88,7 +88,6 @@ export interface IUserUpdateRequest {
   };
 }
 
-
 export interface ISocialAccountRequest {
   platform: 'facebook' | 'instagram' | 'twitter' | 'linkedin';
   accountId: string;

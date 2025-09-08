@@ -92,10 +92,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const refreshTokenValue = req.cookies.refreshToken || req.body.refreshToken;
 
   if (!refreshTokenValue) {
-    throw new AppError(
-      StatusCodes.UNAUTHORIZED,
-      'Refresh token is required'
-    );
+    throw new AppError(StatusCodes.UNAUTHORIZED, 'Refresh token is required');
   }
 
   const result = await AuthService.refreshToken(refreshTokenValue);
@@ -121,7 +118,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     data: {
       accessToken: result.accessToken,
       ...(result.refreshToken && { refreshToken: result.refreshToken }),
-      expiresAt: result.expiresAt
+      expiresAt: result.expiresAt,
     },
   });
 });

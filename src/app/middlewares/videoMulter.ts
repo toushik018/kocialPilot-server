@@ -13,34 +13,34 @@ cloudinary.config({
   api_secret: config.cloudinary.api_secret,
 });
 
-// Cloudinary storage configuration
-const cloudinaryStorage = new CloudinaryStorage({
+// Cloudinary storage configuration for videos
+const cloudinaryVideoStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'kocial-pilot', // Folder name in Cloudinary
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    folder: 'kocial-pilot/videos', // Folder name in Cloudinary
+    allowed_formats: ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'],
+    resource_type: 'video',
     transformation: [
       { quality: 'auto' }, // Automatic quality optimization
-      { fetch_format: 'auto' }, // Automatic format selection
     ],
   } as CloudinaryStorage['params'],
 });
 
-// Fallback local storage (for development or backup)
+// Fallback local storage for videos
 const uploadDir = path.join(process.cwd(), 'uploads');
-const imagesDir = path.join(uploadDir, 'images');
+const videosDir = path.join(uploadDir, 'videos');
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-if (!fs.existsSync(imagesDir)) {
-  fs.mkdirSync(imagesDir, { recursive: true });
+if (!fs.existsSync(videosDir)) {
+  fs.mkdirSync(videosDir, { recursive: true });
 }
 
-const localStorage = multer.diskStorage({
+const localVideoStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, imagesDir);
+    cb(null, videosDir);
   },
   filename: function (req, file, cb) {
     const timestamp = Date.now();
@@ -55,27 +55,27 @@ const localStorage = multer.diskStorage({
 const useCloudinary =
   process.env.NODE_ENV === 'production' ||
   process.env.USE_CLOUDINARY === 'true';
-const storage = useCloudinary ? cloudinaryStorage : localStorage;
+const videoStorage = useCloudinary ? cloudinaryVideoStorage : localVideoStorage;
 
-// File filter
-const fileFilter = (
+// Video file filter
+const videoFileFilter = (
   req: Request,
   file: any, // eslint-disable-line @typescript-eslint/no-explicit-any
   cb: multer.FileFilterCallback
 ) => {
-  // Accept images only
-  if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-    return cb(new Error('Only image files are allowed!'));
+  // Accept videos only
+  if (!file.originalname.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i)) {
+    return cb(new Error('Only video files are allowed!'));
   }
   cb(null, true);
 };
 
-// Export the multer instance
-export const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
+// Export the video multer instance
+export const videoUpload = multer({
+  storage: videoStorage,
+  fileFilter: videoFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 100 * 1024 * 1024, // 100MB limit for videos
   },
 });
 

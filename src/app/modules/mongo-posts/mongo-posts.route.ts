@@ -56,6 +56,6 @@ router.get('/:id', MongoPostController.getPostById);
 
 router.patch('/:id', MongoPostController.updatePost);
 
-router.delete('/:id', MongoPostController.deletePost);
+router.delete('/:id', auth(), MongoPostController.deletePost);
 
 export const MongoPostRoutes = router;

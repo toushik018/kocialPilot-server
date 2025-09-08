@@ -7,6 +7,8 @@ export type IMongoPost = {
   email?: string;
   image_url?: string;
   image_path?: string;
+  video_url?: string;
+  video_path?: string;
   caption: string;
   hashtags?: string[];
   alt_text?: string;

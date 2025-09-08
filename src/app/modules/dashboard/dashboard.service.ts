@@ -1,4 +1,5 @@
 import { Post as MongoPost } from '../mongo-posts/mongo-posts.model';
+import { Video } from '../video/video.model';
 import { IDashboardStats } from './dashboard.interface';
 
 const getStats = async (): Promise<IDashboardStats> => {
@@ -17,6 +18,26 @@ const getStats = async (): Promise<IDashboardStats> => {
 
   // Get draft posts count
   const draftPosts = await MongoPost.countDocuments({ status: 'draft' });
+
+  // Get image posts count (posts with image_url but no video_url)
+  const totalImages = await MongoPost.countDocuments({
+    image_url: { $exists: true, $ne: null },
+    video_url: { $exists: false }
+  });
+
+  // Get video posts count (posts with video_url)
+  const videoPostsCount = await MongoPost.countDocuments({
+    video_url: { $exists: true, $ne: null }
+  });
+
+  // Get standalone videos count from Video collection
+  const standaloneVideosCount = await Video.countDocuments();
+
+  // Total videos = video posts + standalone videos
+  const totalVideos = videoPostsCount + standaloneVideosCount;
+
+  // Total media = images + videos
+  const totalMedia = totalImages + totalVideos;
 
   // Calculate engagement rate (mock data for now)
   const engagementRate = 0.15;
@@ -105,6 +126,9 @@ const getStats = async (): Promise<IDashboardStats> => {
     publishedPosts,
     scheduledPosts,
     draftPosts,
+    totalImages,
+    totalVideos,
+    totalMedia,
     engagementRate,
     recentActivity,
     platformBreakdown,

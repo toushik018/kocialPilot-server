@@ -186,7 +186,10 @@ const deleteImage = async (id: string): Promise<IImage | null> => {
         try {
           await cloudinary.uploader.destroy(image.cloudinary_public_id);
         } catch (cloudinaryError) {
-          console.error('Failed to delete image from Cloudinary:', cloudinaryError);
+          console.error(
+            'Failed to delete image from Cloudinary:',
+            cloudinaryError
+          );
           // Continue execution even if Cloudinary deletion fails
         }
       } else {

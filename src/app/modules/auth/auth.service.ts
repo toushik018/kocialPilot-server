@@ -10,12 +10,14 @@ import {
   ILoginRequest,
   IRegisterRequest,
   ISocialAccountRequest,
-  IUserUpdateRequest
+  IUserUpdateRequest,
 } from './auth.interface';
 import { User } from './auth.model';
 import { createToken, validatePassword } from './auth.utils';
 
-const createUser = async (payload: IRegisterRequest): Promise<IAuthResponse> => {
+const createUser = async (
+  payload: IRegisterRequest
+): Promise<IAuthResponse> => {
   const { email, password, firstName, lastName } = payload;
 
   // Validate password strength
@@ -182,7 +184,11 @@ const logoutUser = async (refreshToken: string): Promise<void> => {
 
 const refreshToken = async (
   token: string
-): Promise<{ accessToken: string; refreshToken?: string; expiresAt: number }> => {
+): Promise<{
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt: number;
+}> => {
   if (!token) {
     throw new AppError(StatusCodes.UNAUTHORIZED, 'Refresh token is required');
   }
@@ -235,7 +241,7 @@ const refreshToken = async (
   return {
     accessToken: newAccessToken,
     refreshToken: newRefreshToken,
-    expiresAt: expiryTime
+    expiresAt: expiryTime,
   };
 };
 

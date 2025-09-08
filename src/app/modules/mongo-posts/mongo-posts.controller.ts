@@ -7,6 +7,7 @@ import { sendResponse } from '../../utils/sendResponse';
 import { IMongoPost } from './mongo-posts.interface';
 import { Post } from './mongo-posts.model';
 import { MongoPostService } from './mongo-posts.service';
+import { VideoService } from '../video/video.service';
 import { CustomRequest } from '../../interface/types';
 
 import { Express } from 'express';
@@ -20,6 +21,7 @@ interface CalendarData {
     id: string;
     user_id: string;
     image_url?: string;
+    video_url?: string;
     caption?: string;
     hashtags?: string[];
     metadata?: Record<string, unknown>;
@@ -30,6 +32,7 @@ interface CalendarData {
     created_at: string;
     updated_at: string;
     posted_at?: string;
+    content_type: 'image' | 'video';
   }[];
   total_count: number;
 }
@@ -40,7 +43,7 @@ const createPost = catchAsync(async (req: CustomRequest, res: Response) => {
     console.log('👤 User info:', {
       userId: req.user?.userId,
       email: req.user?.email,
-      username: req.user?.username
+      username: req.user?.username,
     });
 
     const postData = req.body as IMongoPost;
@@ -48,9 +51,13 @@ const createPost = catchAsync(async (req: CustomRequest, res: Response) => {
     // Validate image URL format to prevent duplicates from AI upload
     if (postData.image_url) {
       // Check if this is an invalid local path format for Cloudinary images
-      if (postData.image_url.startsWith('/uploads/') &&
-        !postData.image_url.includes('/images/')) {
-        console.log('🚫 Detected invalid image URL format, likely from AI upload. Skipping duplicate post creation.');
+      if (
+        postData.image_url.startsWith('/uploads/') &&
+        !postData.image_url.includes('/images/')
+      ) {
+        console.log(
+          '🚫 Detected invalid image URL format, likely from AI upload. Skipping duplicate post creation.'
+        );
         return sendResponse(res, {
           statusCode: httpStatus.CONFLICT,
           success: false,
@@ -152,13 +159,25 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
   ]);
   const paginationOptions = pick(req.query, paginationFields);
 
+  // Get user ID from auth middleware
+  const userId = req.user?.userId;
+
+  // Get posts from mongo-posts
   const result = await MongoPostService.getAllPosts(filters, paginationOptions);
 
-  // Transform the response to match frontend expectations
+  // Get videos from video service with proper filters
+  const videoFilters = {
+    searchTerm: typeof filters.searchTerm === 'string' ? filters.searchTerm : undefined,
+    userId: userId,
+  };
+  const videoResult = await VideoService.getAllVideos(videoFilters, { page: 1, limit: 1000 });
+
+  // Transform posts
   const transformedPosts = result.data.map((post) => ({
     id: post._id?.toString() || '',
     user_id: post.user_id,
     image_url: post.image_url,
+    video_url: undefined,
     caption: post.caption,
     hashtags: post.hashtags || [],
     metadata: post.metadata,
@@ -177,15 +196,63 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
     posted_at: undefined, // Not in the schema
   }));
 
+  // Transform videos to match post structure
+  const transformedVideos = videoResult.data.map((video) => ({
+    id: video._id?.toString() || '',
+    user_id: video.userId,
+    image_url: undefined,
+    video_url: video.url,
+    thumbnail: video.thumbnail,
+    caption: video.caption || video.description || '',
+    hashtags: video.tags || [],
+    metadata: {
+      filename: video.filename,
+      originalName: video.originalName,
+      mimetype: video.mimetype,
+      size: video.size,
+      captionStatus: video.captionStatus,
+      socialMediaPlatforms: video.socialMediaPlatforms,
+      content_type: 'video'
+    },
+    scheduled_date: video.scheduledDate
+      ? new Date(video.scheduledDate).toISOString()
+      : '',
+    scheduled_time: video.scheduledDate
+      ? new Date(video.scheduledDate).toTimeString().split(' ')[0].substring(0, 5)
+      : '',
+    status: video.isScheduled ? 'scheduled' : 'draft',
+    auto_scheduled: false,
+    created_at: video.createdAt
+      ? new Date(video.createdAt).toISOString()
+      : new Date().toISOString(),
+    updated_at: video.updatedAt
+      ? new Date(video.updatedAt).toISOString()
+      : new Date().toISOString(),
+    posted_at: undefined,
+  }));
+
+  // Combine posts and videos
+  const allContent = [...transformedPosts, ...transformedVideos];
+
+  // Sort by created_at descending
+  allContent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // Apply pagination to combined results
+  const currentPage = Number(paginationOptions.page) || 1;
+  const currentLimit = Number(paginationOptions.limit) || 12;
+  const startIndex = (currentPage - 1) * currentLimit;
+  const endIndex = startIndex + currentLimit;
+  const paginatedContent = allContent.slice(startIndex, endIndex);
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Posts retrieved successfully',
-    data: transformedPosts,
+    message: 'Posts and videos retrieved successfully',
+    data: paginatedContent,
     meta: {
-      page: result.meta?.page || 1,
-      limit: result.meta?.limit || 12,
-      total: result.meta?.total || 0,
+      page: currentPage,
+      limit: currentLimit,
+      total: allContent.length,
     },
   });
 });
@@ -293,12 +360,27 @@ const getCalendarPosts = catchAsync(
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
 
-    const result = await MongoPostService.getCalendarPosts(year, month);
+    // Get both posts and videos for the calendar
+    const posts = await MongoPostService.getCalendarPosts(year, month);
+    
+    // Get videos for the same time period
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    
+    const videoFilters = {
+      userId: req.user?.userId || '',
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    };
+    
+    const videosResult = await VideoService.getAllVideos(videoFilters, { page: 1, limit: 1000 });
+    const videos = videosResult.data || [];
 
     // Transform the response to match frontend expectations
     const postsByDate: Record<string, CalendarData> = {};
 
-    result.forEach((post) => {
+    // Process posts
+    posts.forEach((post) => {
       const dateKey = post.scheduled_date
         ? new Date(post.scheduled_date).toISOString().split('T')[0]
         : post.createdAt
@@ -331,16 +413,68 @@ const getCalendarPosts = catchAsync(
         updated_at: post.updatedAt
           ? new Date(post.updatedAt).toISOString()
           : new Date().toISOString(),
-        posted_at: undefined, // Not in the schema
+        posted_at: undefined,
+        content_type: 'image' as const,
       });
+    });
 
+    // Process videos
+    videos.forEach((video) => {
+      const dateKey = video.scheduledDate
+        ? new Date(video.scheduledDate).toISOString().split('T')[0]
+        : video.createdAt
+          ? new Date(video.createdAt).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0];
+
+      if (!postsByDate[dateKey]) {
+        postsByDate[dateKey] = {
+          posts: [],
+          total_count: 0,
+        };
+      }
+
+      postsByDate[dateKey].posts.push({
+        id: video._id?.toString() || '',
+        user_id: video.userId,
+        video_url: video.url,
+        caption: video.caption || video.description,
+        hashtags: video.tags || [],
+        metadata: {
+          filename: video.filename,
+          originalName: video.originalName,
+          mimetype: video.mimetype,
+          size: video.size,
+          captionStatus: video.captionStatus,
+          socialMediaPlatforms: video.socialMediaPlatforms
+        },
+        scheduled_date: video.scheduledDate
+          ? new Date(video.scheduledDate).toISOString()
+          : undefined,
+        scheduled_time: video.scheduledDate
+          ? new Date(video.scheduledDate).toTimeString().split(' ')[0].substring(0, 5)
+          : undefined,
+        status: video.isScheduled ? 'scheduled' : 'draft',
+        auto_scheduled: false,
+        created_at: video.createdAt
+          ? new Date(video.createdAt).toISOString()
+          : new Date().toISOString(),
+        updated_at: video.updatedAt
+          ? new Date(video.updatedAt).toISOString()
+          : new Date().toISOString(),
+        posted_at: undefined,
+        content_type: 'video' as const,
+      });
+    });
+
+    // Update total counts for each date
+    Object.keys(postsByDate).forEach(dateKey => {
       postsByDate[dateKey].total_count = postsByDate[dateKey].posts.length;
     });
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: 'Calendar posts retrieved successfully',
+      message: 'Calendar posts and videos retrieved successfully',
       data: {
         calendar_data: postsByDate,
       },

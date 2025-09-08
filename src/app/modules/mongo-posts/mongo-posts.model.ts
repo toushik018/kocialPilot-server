@@ -19,6 +19,12 @@ const PostSchema = new Schema<IMongoPost>(
     image_path: {
       type: String,
     },
+    video_url: {
+      type: String,
+    },
+    video_path: {
+      type: String,
+    },
     caption: {
       type: String,
       required: true,
