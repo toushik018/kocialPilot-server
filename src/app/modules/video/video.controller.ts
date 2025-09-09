@@ -119,189 +119,213 @@ const scheduleVideo = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const scheduleVideoSmart = catchAsync(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.userId || '';
-  const { preferredDate } = req.body;
+const scheduleVideoSmart = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.userId || '';
+    const { preferredDate } = req.body;
 
-  const result = await VideoService.scheduleVideoSmart(id, userId, preferredDate);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Video scheduled intelligently to next available date',
-    data: result,
-  });
-});
-
-const bulkScheduleVideos = catchAsync(async (req: CustomRequest, res: Response) => {
-  const userId = req.user?.userId || '';
-  const { videoIds, startDate } = req.body;
-
-  const result = await VideoService.bulkScheduleVideos(videoIds, userId, startDate);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Videos scheduled successfully',
-    data: result,
-  });
-});
-
-const getScheduledVideos = catchAsync(async (req: CustomRequest, res: Response) => {
-  const userId = req.user?.userId || '';
-
-  const result = await VideoService.getScheduledVideos(userId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Scheduled videos retrieved successfully',
-    data: result,
-  });
-});
-
-const updateCaptionStatus = catchAsync(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const { captionStatus, caption } = req.body;
-
-  const result = await VideoService.updateCaptionStatus(
-    id,
-    captionStatus as 'pending' | 'generating' | 'completed' | 'failed',
-    caption
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Caption status updated successfully',
-    data: result,
-  });
-});
-
-const uploadVideoWithCaption = catchAsync(async (req: RequestWithFile, res: Response) => {
-  if (!req.file) {
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'No video file provided',
-      data: null,
-    });
-  }
-
-  const { style = 'engaging', platform = 'instagram' } = req.body;
-  const userId = req.user?.userId || '';
-
-  try {
-    // Upload video first
-    const videoData = {
+    const result = await VideoService.scheduleVideoSmart(
+      id,
       userId,
-      file: req.file,
-      scheduledDate: req.body.scheduledDate,
-      description: req.body.description,
-      tags: req.body.tags ? JSON.parse(req.body.tags) : [],
-      socialMediaPlatforms: req.body.socialMediaPlatforms
-        ? JSON.parse(req.body.socialMediaPlatforms)
-        : [],
-    };
-
-    const uploadedVideo = await VideoService.uploadVideo(videoData, true); // Skip caption generation to avoid duplicates
-
-    // Generate caption using AI service
-    const { AIService } = await import('../ai/ai.service');
-    const captionResult = await AIService.generateVideoCaption(
-      uploadedVideo.path,
-      {
-        duration: uploadedVideo.duration,
-        filename: uploadedVideo.originalName,
-        description: uploadedVideo.description,
-        thumbnailPath: uploadedVideo.thumbnail,
-      }
-    );
-
-    // Update video with generated caption
-    await VideoService.updateCaptionStatus(
-      String(uploadedVideo._id),
-      'completed' as const,
-      captionResult.caption
+      preferredDate
     );
 
     sendResponse(res, {
-      statusCode: httpStatus.CREATED,
+      statusCode: httpStatus.OK,
       success: true,
-      message: 'Video uploaded with caption successfully',
-      data: {
-        video: {
-          id: String(uploadedVideo._id),
-          filename: uploadedVideo.filename,
-          original_filename: uploadedVideo.originalName,
-          file_path: uploadedVideo.path,
-          file_size: uploadedVideo.size,
-          mime_type: uploadedVideo.mimetype,
+      message: 'Video scheduled intelligently to next available date',
+      data: result,
+    });
+  }
+);
+
+const bulkScheduleVideos = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const userId = req.user?.userId || '';
+    const { videoIds, startDate } = req.body;
+
+    const result = await VideoService.bulkScheduleVideos(
+      videoIds,
+      userId,
+      startDate
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Videos scheduled successfully',
+      data: result,
+    });
+  }
+);
+
+const getScheduledVideos = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const userId = req.user?.userId || '';
+
+    const result = await VideoService.getScheduledVideos(userId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Scheduled videos retrieved successfully',
+      data: result,
+    });
+  }
+);
+
+const updateCaptionStatus = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const { captionStatus, caption } = req.body;
+
+    const result = await VideoService.updateCaptionStatus(
+      id,
+      captionStatus as 'pending' | 'generating' | 'completed' | 'failed',
+      caption
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Caption status updated successfully',
+      data: result,
+    });
+  }
+);
+
+const uploadVideoWithCaption = catchAsync(
+  async (req: RequestWithFile, res: Response) => {
+    if (!req.file) {
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'No video file provided',
+        data: null,
+      });
+    }
+
+    const { style = 'engaging', platform = 'instagram' } = req.body;
+    const userId = req.user?.userId || '';
+
+    try {
+      // Upload video first
+      const videoData = {
+        userId,
+        file: req.file,
+        scheduledDate: req.body.scheduledDate,
+        description: req.body.description,
+        tags: req.body.tags ? JSON.parse(req.body.tags) : [],
+        socialMediaPlatforms: req.body.socialMediaPlatforms
+          ? JSON.parse(req.body.socialMediaPlatforms)
+          : [],
+      };
+
+      const uploadedVideo = await VideoService.uploadVideo(videoData, true); // Skip caption generation to avoid duplicates
+
+      // Generate caption using AI service
+      const { AIService } = await import('../ai/ai.service');
+      const captionResult = await AIService.generateVideoCaption(
+        uploadedVideo.path,
+        {
           duration: uploadedVideo.duration,
-          thumbnail: uploadedVideo.thumbnail,
-          created_at: uploadedVideo.createdAt,
+          filename: uploadedVideo.originalName,
+          description: uploadedVideo.description,
+          thumbnailPath: uploadedVideo.thumbnail,
+        }
+      );
+
+      // Update video with generated caption
+      await VideoService.updateCaptionStatus(
+        String(uploadedVideo._id),
+        'completed' as const,
+        captionResult.caption
+      );
+
+      sendResponse(res, {
+        statusCode: httpStatus.CREATED,
+        success: true,
+        message: 'Video uploaded with caption successfully',
+        data: {
+          video: {
+            id: String(uploadedVideo._id),
+            filename: uploadedVideo.filename,
+            original_filename: uploadedVideo.originalName,
+            file_path: uploadedVideo.path,
+            file_size: uploadedVideo.size,
+            mime_type: uploadedVideo.mimetype,
+            duration: uploadedVideo.duration,
+            thumbnail: uploadedVideo.thumbnail,
+            created_at: uploadedVideo.createdAt,
+          },
+          caption: {
+            text: captionResult.caption,
+            style,
+            platform,
+            character_count: captionResult.caption.length,
+            hashtag_count: captionResult.hashtags.length,
+            hashtags: captionResult.hashtags,
+          },
         },
-        caption: {
-          text: captionResult.caption,
-          style,
-          platform,
-          character_count: captionResult.caption.length,
-          hashtag_count: captionResult.hashtags.length,
-          hashtags: captionResult.hashtags,
-        },
+      });
+    } catch (error) {
+      console.error('Error uploading video with caption:', error);
+      sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: 'Failed to upload video with caption',
+        data: null,
+      });
+    }
+  }
+);
+
+const getCaptionStatus = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.userId || '';
+
+    const video = await VideoService.getVideoById(id, userId);
+
+    if (!video) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Video not found',
+        data: null,
+      });
+    }
+
+    // Map caption status to frontend expected values
+    let status: 'processing' | 'completed' | 'failed' = 'processing';
+    if (video.captionStatus === 'completed') {
+      status = 'completed';
+    } else if (video.captionStatus === 'failed') {
+      status = 'failed';
+    } else if (
+      video.captionStatus === 'pending' ||
+      video.captionStatus === 'generating'
+    ) {
+      status = 'processing';
+    }
+
+    const progress =
+      status === 'processing' ? 50 : status === 'completed' ? 100 : 0;
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Caption status retrieved successfully',
+      data: {
+        videoId: id,
+        status,
+        caption: video.caption,
+        progress,
       },
     });
-  } catch (error) {
-    console.error('Error uploading video with caption:', error);
-    sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: 'Failed to upload video with caption',
-      data: null,
-    });
   }
-});
-
-const getCaptionStatus = catchAsync(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.userId || '';
-
-  const video = await VideoService.getVideoById(id, userId);
-
-  if (!video) {
-    return sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'Video not found',
-      data: null,
-    });
-  }
-
-  // Map caption status to frontend expected values
-  let status: 'processing' | 'completed' | 'failed' = 'processing';
-  if (video.captionStatus === 'completed') {
-    status = 'completed';
-  } else if (video.captionStatus === 'failed') {
-    status = 'failed';
-  } else if (video.captionStatus === 'pending' || video.captionStatus === 'generating') {
-    status = 'processing';
-  }
-
-  const progress = status === 'processing' ? 50 : status === 'completed' ? 100 : 0;
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Caption status retrieved successfully',
-    data: {
-      videoId: id,
-      status,
-      caption: video.caption,
-      progress,
-    },
-  });
-});
+);
 
 export const VideoController = {
   uploadVideo,

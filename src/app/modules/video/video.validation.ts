@@ -23,7 +23,9 @@ const updateVideoValidation = z.object({
 const getVideosValidation = z.object({
   query: z.object({
     searchTerm: z.string().optional(),
-    captionStatus: z.enum(['pending', 'generating', 'completed', 'failed']).optional(),
+    captionStatus: z
+      .enum(['pending', 'generating', 'completed', 'failed'])
+      .optional(),
     isScheduled: z.string().optional(),
     isPublished: z.string().optional(),
     startDate: z.string().optional(),

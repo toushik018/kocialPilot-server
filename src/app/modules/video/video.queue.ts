@@ -21,7 +21,7 @@ class VideoCaptionQueue {
   async addJob(job: IVideoCaptionJob): Promise<void> {
     const jobId = `${job.videoId}-${Date.now()}`;
     this.jobs.set(jobId, { ...job, retryCount: 0 });
-    
+
     // Process the job immediately (in a real system, this would be handled by workers)
     this.processJob(jobId);
   }
@@ -48,44 +48,54 @@ class VideoCaptionQueue {
       }
 
       // Generate AI caption using the AI service
-      const captionResult = await AIService.generateVideoCaption(job.videoPath, {
-        filename: video.originalName,
-        description: video.description,
-        thumbnailPath: video.thumbnail,
-        // duration: video.duration, // Add when video duration is implemented
-      });
+      const captionResult = await AIService.generateVideoCaption(
+        job.videoPath,
+        {
+          filename: video.originalName,
+          description: video.description,
+          thumbnailPath: video.thumbnail,
+          // duration: video.duration, // Add when video duration is implemented
+        }
+      );
 
       // Combine caption and hashtags
       const fullCaption = `${captionResult.caption}\n\n${captionResult.hashtags.join(' ')}`;
-      
+
       // Update video with generated caption
       await this.updateCaptionStatus(job.videoId, 'completed', fullCaption);
-      
+
       // Remove job from queue
       this.jobs.delete(jobId);
-      
-      console.log(`✅ Video caption generated successfully for video: ${job.videoId}`);
-      
+
+      console.log(
+        `✅ Video caption generated successfully for video: ${job.videoId}`
+      );
     } catch (error) {
-      console.error(`❌ Error generating video caption for ${job.videoId}:`, error);
-      
+      console.error(
+        `❌ Error generating video caption for ${job.videoId}:`,
+        error
+      );
+
       // Handle retry logic
       const currentRetryCount = job.retryCount || 0;
       if (currentRetryCount < this.maxRetries) {
         job.retryCount = currentRetryCount + 1;
-        console.log(`🔄 Retrying caption generation for video ${job.videoId} (attempt ${job.retryCount}/${this.maxRetries})`);
-        
+        console.log(
+          `🔄 Retrying caption generation for video ${job.videoId} (attempt ${job.retryCount}/${this.maxRetries})`
+        );
+
         // Retry after delay
         setTimeout(() => {
           this.processing.delete(jobId);
           this.processJob(jobId);
         }, this.retryDelay * job.retryCount); // Exponential backoff
-        
       } else {
         // Max retries reached, mark as failed
         await this.updateCaptionStatus(job.videoId, 'failed');
         this.jobs.delete(jobId);
-        console.log(`💥 Max retries reached for video caption generation: ${job.videoId}`);
+        console.log(
+          `💥 Max retries reached for video caption generation: ${job.videoId}`
+        );
       }
     } finally {
       this.processing.delete(jobId);

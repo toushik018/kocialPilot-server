@@ -167,10 +167,14 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
 
   // Get videos from video service with proper filters
   const videoFilters = {
-    searchTerm: typeof filters.searchTerm === 'string' ? filters.searchTerm : undefined,
+    searchTerm:
+      typeof filters.searchTerm === 'string' ? filters.searchTerm : undefined,
     userId: userId,
   };
-  const videoResult = await VideoService.getAllVideos(videoFilters, { page: 1, limit: 1000 });
+  const videoResult = await VideoService.getAllVideos(videoFilters, {
+    page: 1,
+    limit: 1000,
+  });
 
   // Transform posts
   const transformedPosts = result.data.map((post) => ({
@@ -212,13 +216,16 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
       size: video.size,
       captionStatus: video.captionStatus,
       socialMediaPlatforms: video.socialMediaPlatforms,
-      content_type: 'video'
+      content_type: 'video',
     },
     scheduled_date: video.scheduledDate
       ? new Date(video.scheduledDate).toISOString()
       : '',
     scheduled_time: video.scheduledDate
-      ? new Date(video.scheduledDate).toTimeString().split(' ')[0].substring(0, 5)
+      ? new Date(video.scheduledDate)
+          .toTimeString()
+          .split(' ')[0]
+          .substring(0, 5)
       : '',
     status: video.isScheduled ? 'scheduled' : 'draft',
     auto_scheduled: false,
@@ -235,7 +242,10 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
   const allContent = [...transformedPosts, ...transformedVideos];
 
   // Sort by created_at descending
-  allContent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  allContent.sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   // Apply pagination to combined results
   const currentPage = Number(paginationOptions.page) || 1;
@@ -362,18 +372,21 @@ const getCalendarPosts = catchAsync(
 
     // Get both posts and videos for the calendar
     const posts = await MongoPostService.getCalendarPosts(year, month);
-    
+
     // Get videos for the same time period
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
-    
+
     const videoFilters = {
       userId: req.user?.userId || '',
       startDate: startDate.toISOString(),
-      endDate: endDate.toISOString()
+      endDate: endDate.toISOString(),
     };
-    
-    const videosResult = await VideoService.getAllVideos(videoFilters, { page: 1, limit: 1000 });
+
+    const videosResult = await VideoService.getAllVideos(videoFilters, {
+      page: 1,
+      limit: 1000,
+    });
     const videos = videosResult.data || [];
 
     // Transform the response to match frontend expectations
@@ -445,13 +458,16 @@ const getCalendarPosts = catchAsync(
           mimetype: video.mimetype,
           size: video.size,
           captionStatus: video.captionStatus,
-          socialMediaPlatforms: video.socialMediaPlatforms
+          socialMediaPlatforms: video.socialMediaPlatforms,
         },
         scheduled_date: video.scheduledDate
           ? new Date(video.scheduledDate).toISOString()
           : undefined,
         scheduled_time: video.scheduledDate
-          ? new Date(video.scheduledDate).toTimeString().split(' ')[0].substring(0, 5)
+          ? new Date(video.scheduledDate)
+              .toTimeString()
+              .split(' ')[0]
+              .substring(0, 5)
           : undefined,
         status: video.isScheduled ? 'scheduled' : 'draft',
         auto_scheduled: false,
@@ -467,7 +483,7 @@ const getCalendarPosts = catchAsync(
     });
 
     // Update total counts for each date
-    Object.keys(postsByDate).forEach(dateKey => {
+    Object.keys(postsByDate).forEach((dateKey) => {
       postsByDate[dateKey].total_count = postsByDate[dateKey].posts.length;
     });
 

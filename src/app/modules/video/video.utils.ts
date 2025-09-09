@@ -30,7 +30,9 @@ export const generateVideoFilename = (originalName: string): string => {
 /**
  * Get video duration (placeholder - implement with actual video processing library)
  */
-export const getVideoDuration = async (_videoPath: string): Promise<number | null> => {
+export const getVideoDuration = async (
+  _videoPath: string
+): Promise<number | null> => {
   try {
     // This is a placeholder - implement with ffprobe or similar
     // For now, return null to indicate duration is not available
@@ -87,7 +89,10 @@ export const generateVideoThumbnail = async (
 /**
  * Clean up video files (video and thumbnail)
  */
-export const cleanupVideoFiles = (videoPath: string, thumbnailPath?: string): void => {
+export const cleanupVideoFiles = (
+  videoPath: string,
+  thumbnailPath?: string
+): void => {
   try {
     if (fs.existsSync(videoPath)) {
       fs.unlinkSync(videoPath);
@@ -107,7 +112,7 @@ export const formatVideoSize = (bytes: number): string => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   if (bytes === 0) return '0 Bytes';
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
 /**
@@ -117,7 +122,7 @@ export const formatVideoDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = Math.floor(seconds % 60);
-  
+
   if (hours > 0) {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   }
@@ -128,7 +133,9 @@ export const formatVideoDuration = (seconds: number): string => {
  * Validate video upload data
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const validateVideoUpload = (file: any): { isValid: boolean; error?: string } => {
+export const validateVideoUpload = (
+  file: any
+): { isValid: boolean; error?: string } => {
   if (!file) {
     return { isValid: false, error: 'No file provided' };
   }
@@ -138,7 +145,10 @@ export const validateVideoUpload = (file: any): { isValid: boolean; error?: stri
   }
 
   if (!isValidVideoSize(file.size)) {
-    return { isValid: false, error: `File size exceeds limit of ${formatVideoSize(MAX_VIDEO_SIZE)}` };
+    return {
+      isValid: false,
+      error: `File size exceeds limit of ${formatVideoSize(MAX_VIDEO_SIZE)}`,
+    };
   }
 
   return { isValid: true };
@@ -147,7 +157,9 @@ export const validateVideoUpload = (file: any): { isValid: boolean; error?: stri
 /**
  * Extract video metadata (placeholder)
  */
-export const extractVideoMetadata = async (_videoPath: string): Promise<{
+export const extractVideoMetadata = async (
+  _videoPath: string
+): Promise<{
   duration?: number;
   width?: number;
   height?: number;

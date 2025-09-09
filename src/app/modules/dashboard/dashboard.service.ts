@@ -22,12 +22,12 @@ const getStats = async (): Promise<IDashboardStats> => {
   // Get image posts count (posts with image_url but no video_url)
   const totalImages = await MongoPost.countDocuments({
     image_url: { $exists: true, $ne: null },
-    video_url: { $exists: false }
+    video_url: { $exists: false },
   });
 
   // Get video posts count (posts with video_url)
   const videoPostsCount = await MongoPost.countDocuments({
-    video_url: { $exists: true, $ne: null }
+    video_url: { $exists: true, $ne: null },
   });
 
   // Get standalone videos count from Video collection

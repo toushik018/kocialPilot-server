@@ -244,10 +244,12 @@ const generateVideoCaption = async (
           }
         } else {
           // Local file path - construct full path
-          const fullThumbnailPath = videoMetadata.thumbnailPath.startsWith('/uploads')
+          const fullThumbnailPath = videoMetadata.thumbnailPath.startsWith(
+            '/uploads'
+          )
             ? `${process.cwd()}${videoMetadata.thumbnailPath}`
             : videoMetadata.thumbnailPath;
-          
+
           const imageBuffer = await fs.readFile(fullThumbnailPath);
           base64Image = imageBuffer.toString('base64');
         }
@@ -259,7 +261,7 @@ const generateVideoCaption = async (
             {
               role: 'system',
               content:
-                "You are a social media content expert. Analyze this video thumbnail and generate a compelling, engaging caption for the video. The caption should be attention-grabbing, relevant to what you see in the image, and optimized for social media engagement. Also generate 3-5 relevant hashtags based on the visual content.",
+                'You are a social media content expert. Analyze this video thumbnail and generate a compelling, engaging caption for the video. The caption should be attention-grabbing, relevant to what you see in the image, and optimized for social media engagement. Also generate 3-5 relevant hashtags based on the visual content.',
             },
             {
               role: 'user',
@@ -324,26 +326,30 @@ const generateVideoCaption = async (
           hashtags: hashtags,
         };
       } catch (thumbnailError) {
-        console.warn('Failed to analyze thumbnail, falling back to text-based generation:', thumbnailError);
+        console.warn(
+          'Failed to analyze thumbnail, falling back to text-based generation:',
+          thumbnailError
+        );
         // Fall through to text-based generation
       }
     }
 
     // Fallback: text-based analysis when thumbnail is not available or fails
-    const filename = videoMetadata?.filename || videoPath.split('/').pop() || 'video';
+    const filename =
+      videoMetadata?.filename || videoPath.split('/').pop() || 'video';
     const duration = videoMetadata?.duration;
     const description = videoMetadata?.description;
 
     let prompt = `Generate a compelling, engaging social media caption for a video file named "${filename}".`;
-    
+
     if (duration) {
       prompt += ` The video is ${Math.round(duration)} seconds long.`;
     }
-    
+
     if (description) {
       prompt += ` Additional context: ${description}.`;
     }
-    
+
     prompt += ` Create an engaging caption that would work well for social media. Focus on creating excitement and encouraging engagement. Also generate 3-5 relevant hashtags. Format the response with the caption first, followed by hashtags.`;
 
     const response = await openai.chat.completions.create({

@@ -33,11 +33,7 @@ router.get(
 );
 
 // Get scheduled videos
-router.get(
-  '/scheduled',
-  auth(),
-  VideoController.getScheduledVideos
-);
+router.get('/scheduled', auth(), VideoController.getScheduledVideos);
 
 // Get video by ID
 router.get(

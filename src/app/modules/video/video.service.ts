@@ -20,22 +20,41 @@ import { IMongoPost } from '../mongo-posts/mongo-posts.interface';
 import { generateVideoThumbnail } from './video.utils';
 import { VIDEO_THUMBNAIL_PATH } from './video.constant';
 
-const uploadVideo = async (videoData: IVideoUpload, skipCaptionGeneration = false): Promise<IVideoDocument> => {
-  const { userId, file, scheduledDate, description, tags, socialMediaPlatforms } = videoData;
+const uploadVideo = async (
+  videoData: IVideoUpload,
+  skipCaptionGeneration = false
+): Promise<IVideoDocument> => {
+  const {
+    userId,
+    file,
+    scheduledDate,
+    description,
+    tags,
+    socialMediaPlatforms,
+  } = videoData;
 
   // Handle scheduling with auto-increment logic
   let finalScheduledDate = null;
   if (scheduledDate) {
-    finalScheduledDate = await findNextAvailableDateForContent(userId, scheduledDate);
+    finalScheduledDate = await findNextAvailableDateForContent(
+      userId,
+      scheduledDate
+    );
   }
 
   // Generate thumbnail
   let thumbnailPath = null;
   try {
     const thumbnailFilename = `thumb_${Date.now()}_${path.parse(file.filename).name}.jpg`;
-    const thumbnailFullPath = path.join(VIDEO_THUMBNAIL_PATH, thumbnailFilename);
-    
-    const generatedThumbnail = await generateVideoThumbnail(file.path, thumbnailFullPath);
+    const thumbnailFullPath = path.join(
+      VIDEO_THUMBNAIL_PATH,
+      thumbnailFilename
+    );
+
+    const generatedThumbnail = await generateVideoThumbnail(
+      file.path,
+      thumbnailFullPath
+    );
     if (generatedThumbnail) {
       thumbnailPath = `/uploads/thumbnails/${thumbnailFilename}`;
     }
@@ -89,7 +108,7 @@ const getAllVideos = async (
   // Add search term
   if (searchTerm) {
     andConditions.push({
-      $or: videoSearchableFields.map(field => ({
+      $or: videoSearchableFields.map((field) => ({
         [field]: {
           $regex: searchTerm,
           $options: 'i',
@@ -117,7 +136,8 @@ const getAllVideos = async (
     });
   }
 
-  const whereConditions = andConditions.length > 0 ? { $and: andConditions } : {};
+  const whereConditions =
+    andConditions.length > 0 ? { $and: andConditions } : {};
 
   const sortConditions: { [key: string]: SortOrder } = {};
   if (sortBy && sortOrder) {
@@ -143,7 +163,10 @@ const getAllVideos = async (
   };
 };
 
-const getVideoById = async (id: string, userId: string): Promise<IVideoDocument | null> => {
+const getVideoById = async (
+  id: string,
+  userId: string
+): Promise<IVideoDocument | null> => {
   const result = await Video.findOne({ _id: id, userId });
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
@@ -222,14 +245,18 @@ const bulkScheduleVideos = async (
   startDate: string
 ): Promise<IVideoDocument[]> => {
   const videos = await Video.find({ _id: { $in: videoIds }, userId });
-  
+
   if (videos.length !== videoIds.length) {
     throw new AppError(httpStatus.NOT_FOUND, 'Some videos not found');
   }
 
   // Find available dates starting from the requested start date
-  const availableDates = await findAvailableDates(userId, startDate, videoIds.length);
-  
+  const availableDates = await findAvailableDates(
+    userId,
+    startDate,
+    videoIds.length
+  );
+
   const updates = videoIds.map((videoId, index) => {
     return Video.findByIdAndUpdate(
       videoId,
@@ -250,7 +277,7 @@ const findNextAvailableDateForContent = async (
   requestedDate: string
 ): Promise<Date> => {
   const currentDate = new Date(requestedDate);
-  
+
   while (true) {
     const dayStart = new Date(currentDate);
     dayStart.setHours(0, 0, 0, 0);
@@ -291,45 +318,53 @@ const findAvailableDates = async (
 ): Promise<Date[]> => {
   const availableDates: Date[] = [];
   const currentDate = new Date(startDate);
-  
+
   // Get all existing scheduled dates for the user
   const existingSchedules = await Video.find({
     userId,
     isScheduled: true,
     scheduledDate: { $gte: currentDate },
-  }).select('scheduledDate').sort({ scheduledDate: 1 });
-  
+  })
+    .select('scheduledDate')
+    .sort({ scheduledDate: 1 });
+
   const existingPosts = await Post.find({
-     user_id: userId,
-     status: 'scheduled',
-     scheduled_date: { $gte: currentDate },
-   }).select('scheduled_date').sort({ scheduled_date: 1 });
-  
+    user_id: userId,
+    status: 'scheduled',
+    scheduled_date: { $gte: currentDate },
+  })
+    .select('scheduled_date')
+    .sort({ scheduled_date: 1 });
+
   const scheduledDates = new Set([
-    ...existingSchedules.map(video => 
-      video.scheduledDate ? video.scheduledDate.toDateString() : ''
-    ).filter(Boolean),
-    ...existingPosts.map((post: IMongoPost) => 
+    ...existingSchedules
+      .map((video) =>
+        video.scheduledDate ? video.scheduledDate.toDateString() : ''
+      )
+      .filter(Boolean),
+    ...existingPosts
+      .map((post: IMongoPost) =>
         post.scheduled_date ? post.scheduled_date.toDateString() : ''
-      ).filter(Boolean)
+      )
+      .filter(Boolean),
   ]);
-  
+
   // Find available dates
   while (availableDates.length < count) {
     const dateString = currentDate.toDateString();
-    
+
     // Skip weekends if needed (optional - can be configured)
     const dayOfWeek = currentDate.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
-    
+
     if (!scheduledDates.has(dateString) && !isWeekend) {
       availableDates.push(new Date(currentDate));
     }
-    
+
     // Move to next day
     currentDate.setDate(currentDate.getDate() + 1);
   }
-  
+
   return availableDates;
 };
 
@@ -346,7 +381,7 @@ const scheduleVideoSmart = async (
 
   // Find the next available date starting from preferred date
   const availableDates = await findAvailableDates(userId, preferredDate, 1);
-  
+
   const result = await Video.findByIdAndUpdate(
     id,
     {
@@ -359,7 +394,9 @@ const scheduleVideoSmart = async (
   return result;
 };
 
-const getScheduledVideos = async (userId: string): Promise<IVideoDocument[]> => {
+const getScheduledVideos = async (
+  userId: string
+): Promise<IVideoDocument[]> => {
   const result = await Video.find({
     userId,
     isScheduled: true,
