@@ -45,6 +45,7 @@ const uploadVideo = async (
 
   // Generate thumbnail
   let thumbnailPath = null;
+  let thumbnailCloudinaryPublicId: string | undefined;
   try {
     const thumbnailFilename = `thumb_${Date.now()}_${path.parse(file.filename).name}.jpg`;
     const thumbnailFullPath = path.join(
@@ -56,8 +57,35 @@ const uploadVideo = async (
       file.path,
       thumbnailFullPath
     );
+    
     if (generatedThumbnail) {
-      thumbnailPath = `/uploads/thumbnails/${thumbnailFilename}`;
+      // If video is uploaded to Cloudinary, upload thumbnail to Cloudinary too
+      if (file.path && file.path.startsWith('http')) {
+        try {
+          const thumbnailUploadResult = await cloudinary.uploader.upload(
+            thumbnailFullPath,
+            {
+              folder: 'kocial-pilot/thumbnails',
+              resource_type: 'image',
+              public_id: `thumb_${Date.now()}_${path.parse(file.filename).name}`,
+            }
+          );
+          thumbnailPath = thumbnailUploadResult.secure_url;
+          thumbnailCloudinaryPublicId = thumbnailUploadResult.public_id;
+          
+          // Delete local thumbnail file after uploading to Cloudinary
+          if (fs.existsSync(thumbnailFullPath)) {
+            fs.unlinkSync(thumbnailFullPath);
+          }
+        } catch (cloudinaryError) {
+          console.error('Failed to upload thumbnail to Cloudinary:', cloudinaryError);
+          // Fallback to local thumbnail
+          thumbnailPath = `/uploads/thumbnails/${thumbnailFilename}`;
+        }
+      } else {
+        // Local video, keep thumbnail local
+        thumbnailPath = `/uploads/thumbnails/${thumbnailFilename}`;
+      }
     }
   } catch (error) {
     console.error('Failed to generate thumbnail for video:', error);
@@ -95,6 +123,7 @@ const uploadVideo = async (
     socialMediaPlatforms: socialMediaPlatforms || [],
     captionStatus: 'pending',
     cloudinary_public_id: cloudinaryPublicId,
+    thumbnail_cloudinary_public_id: thumbnailCloudinaryPublicId,
   });
 
   const savedVideo = await videoDoc.save();
@@ -242,9 +271,30 @@ const deleteVideo = async (id: string, userId: string): Promise<void> => {
     }
   }
 
-  // Delete thumbnail if exists (always local for now)
-  if (video.thumbnail && fs.existsSync(video.thumbnail)) {
-    fs.unlinkSync(video.thumbnail);
+  // Delete thumbnail if exists
+  if (video.thumbnail) {
+    if (video.thumbnail_cloudinary_public_id) {
+      // Delete thumbnail from Cloudinary
+      try {
+        await cloudinary.uploader.destroy(video.thumbnail_cloudinary_public_id, {
+          resource_type: 'image'
+        });
+        console.log(`✅ Thumbnail deleted from Cloudinary: ${video.thumbnail_cloudinary_public_id}`);
+      } catch (cloudinaryError) {
+        console.error(
+          'Failed to delete thumbnail from Cloudinary:',
+          cloudinaryError
+        );
+      }
+    } else {
+      // Delete local thumbnail file
+      const thumbnailPath = video.thumbnail.startsWith('/uploads')
+        ? path.join(process.cwd(), video.thumbnail)
+        : video.thumbnail;
+      if (fs.existsSync(thumbnailPath)) {
+        fs.unlinkSync(thumbnailPath);
+      }
+    }
   }
 
   await Video.findByIdAndDelete(id);

@@ -22,6 +22,7 @@ export interface IVideo {
   tags?: string[];
   description?: string;
   cloudinary_public_id?: string;
+  thumbnail_cloudinary_public_id?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +47,7 @@ export interface IVideoDocument extends Document {
   tags?: string[];
   description?: string;
   cloudinary_public_id?: string;
+  thumbnail_cloudinary_public_id?: string;
   createdAt: Date;
   updatedAt: Date;
 }

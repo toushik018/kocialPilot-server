@@ -207,6 +207,7 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
     image_url: undefined,
     video_url: video.url,
     thumbnail: video.thumbnail,
+    content_type: 'video',
     caption: video.caption || video.description || '',
     hashtags: video.tags || [],
     metadata: {
@@ -216,7 +217,6 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
       size: video.size,
       captionStatus: video.captionStatus,
       socialMediaPlatforms: video.socialMediaPlatforms,
-      content_type: 'video',
     },
     scheduled_date: video.scheduledDate
       ? new Date(video.scheduledDate).toISOString()
@@ -450,6 +450,7 @@ const getCalendarPosts = catchAsync(
         id: video._id?.toString() || '',
         user_id: video.userId,
         video_url: video.url,
+        content_type: 'video' as const,
         caption: video.caption || video.description,
         hashtags: video.tags || [],
         metadata: {
@@ -478,7 +479,6 @@ const getCalendarPosts = catchAsync(
           ? new Date(video.updatedAt).toISOString()
           : new Date().toISOString(),
         posted_at: undefined,
-        content_type: 'video' as const,
       });
     });
 
