@@ -81,6 +81,10 @@ const videoSchema = new Schema<IVideoDocument>(
       type: String,
       default: null,
     },
+    cloudinary_public_id: {
+      type: String,
+      required: false, // Optional field for Cloudinary videos
+    },
   },
   {
     timestamps: true,

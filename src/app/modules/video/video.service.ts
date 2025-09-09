@@ -63,6 +63,21 @@ const uploadVideo = async (
     // Continue without thumbnail - not a critical failure
   }
 
+  // Determine the correct URL based on storage type
+  let videoUrl: string;
+  let cloudinaryPublicId: string | undefined;
+  
+  if (file.path && file.path.startsWith('http')) {
+    // Cloudinary upload - use the direct URL
+    videoUrl = file.path;
+    // Extract public_id from Cloudinary file object
+    const cloudinaryFile = file as typeof file & { public_id?: string };
+    cloudinaryPublicId = cloudinaryFile.public_id;
+  } else {
+    // Local file upload - construct local URL
+    videoUrl = `/uploads/videos/${file.filename}`;
+  }
+
   const videoDoc = new Video({
     userId,
     filename: file.filename,
@@ -70,7 +85,7 @@ const uploadVideo = async (
     mimetype: file.mimetype,
     size: file.size,
     path: file.path,
-    url: `/uploads/videos/${file.filename}`,
+    url: videoUrl,
     thumbnail: thumbnailPath,
     scheduledDate: finalScheduledDate,
     isScheduled: !!finalScheduledDate,
@@ -78,6 +93,7 @@ const uploadVideo = async (
     tags: tags || [],
     socialMediaPlatforms: socialMediaPlatforms || [],
     captionStatus: 'pending',
+    cloudinary_public_id: cloudinaryPublicId,
   });
 
   const savedVideo = await videoDoc.save();

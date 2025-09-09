@@ -21,6 +21,7 @@ export interface IVideo {
   socialMediaPlatforms?: string[];
   tags?: string[];
   description?: string;
+  cloudinary_public_id?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +45,7 @@ export interface IVideoDocument extends Document {
   socialMediaPlatforms?: string[];
   tags?: string[];
   description?: string;
+  cloudinary_public_id?: string;
   createdAt: Date;
   updatedAt: Date;
 }
