@@ -28,7 +28,11 @@ const uploadVideo = catchAsync(async (req: RequestWithFile, res: Response) => {
     file: req.file,
     scheduledDate: req.body.scheduledDate,
     description: req.body.description,
-    tags: req.body.tags ? JSON.parse(req.body.tags) : [],
+    tags: req.body.tags 
+      ? typeof req.body.tags === 'string' && !req.body.tags.startsWith('[') 
+        ? req.body.tags.split(',').map((tag: string) => tag.trim()) 
+        : JSON.parse(req.body.tags) 
+      : [],
     socialMediaPlatforms: req.body.socialMediaPlatforms
       ? JSON.parse(req.body.socialMediaPlatforms)
       : [],
@@ -216,7 +220,11 @@ const uploadVideoWithCaption = catchAsync(
         file: req.file,
         scheduledDate: req.body.scheduledDate,
         description: req.body.description,
-        tags: req.body.tags ? JSON.parse(req.body.tags) : [],
+        tags: req.body.tags 
+          ? typeof req.body.tags === 'string' && !req.body.tags.startsWith('[') 
+            ? req.body.tags.split(',').map((tag: string) => tag.trim()) 
+            : JSON.parse(req.body.tags) 
+          : [],
         socialMediaPlatforms: req.body.socialMediaPlatforms
           ? JSON.parse(req.body.socialMediaPlatforms)
           : [],
@@ -224,29 +232,79 @@ const uploadVideoWithCaption = catchAsync(
 
       const uploadedVideo = await VideoService.uploadVideo(videoData, true); // Skip caption generation to avoid duplicates
 
-      // Generate caption using AI service
-      const { AIService } = await import('../ai/ai.service');
-      const captionResult = await AIService.generateVideoCaption(
-        uploadedVideo.path,
-        {
-          duration: uploadedVideo.duration,
-          filename: uploadedVideo.originalName,
-          description: uploadedVideo.description,
-          thumbnailPath: uploadedVideo.thumbnail,
+      // For Cloudinary uploads with async processing, queue caption generation
+      // instead of trying to process immediately
+      if (uploadedVideo.path && uploadedVideo.path.startsWith('http')) {
+        // Cloudinary upload - queue for later processing
+        await VideoService.updateCaptionStatus(
+          String(uploadedVideo._id),
+          'pending' as const
+        );
+        
+        // Queue caption generation with delay to allow Cloudinary processing
+        setTimeout(async () => {
+          try {
+            const { AIService } = await import('../ai/ai.service');
+            const captionResult = await AIService.generateVideoCaption(
+              uploadedVideo.path,
+              {
+                duration: uploadedVideo.duration,
+                filename: uploadedVideo.originalName,
+                description: uploadedVideo.description,
+                thumbnailPath: uploadedVideo.thumbnail,
+              }
+            );
+            
+            await VideoService.updateCaptionStatus(
+              String(uploadedVideo._id),
+              'completed' as const,
+              captionResult.caption
+            );
+          } catch (error) {
+            console.error('Failed to generate caption for video:', error);
+            await VideoService.updateCaptionStatus(
+              String(uploadedVideo._id),
+              'failed' as const
+            );
+          }
+        }, 30000); // Wait 30 seconds for Cloudinary processing
+      } else {
+        // Local upload - process immediately
+        try {
+          const { AIService } = await import('../ai/ai.service');
+          const captionResult = await AIService.generateVideoCaption(
+            uploadedVideo.path,
+            {
+              duration: uploadedVideo.duration,
+              filename: uploadedVideo.originalName,
+              description: uploadedVideo.description,
+              thumbnailPath: uploadedVideo.thumbnail,
+            }
+          );
+          
+          await VideoService.updateCaptionStatus(
+            String(uploadedVideo._id),
+            'completed' as const,
+            captionResult.caption
+          );
+        } catch (error) {
+          console.error('Failed to generate caption for video:', error);
+          await VideoService.updateCaptionStatus(
+            String(uploadedVideo._id),
+            'failed' as const
+          );
         }
-      );
+      }
 
-      // Update video with generated caption
-      await VideoService.updateCaptionStatus(
-        String(uploadedVideo._id),
-        'completed' as const,
-        captionResult.caption
-      );
-
+      // Determine response based on processing type
+      const isCloudinaryUpload = uploadedVideo.path && uploadedVideo.path.startsWith('http');
+      
       sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: 'Video uploaded with caption successfully',
+        message: isCloudinaryUpload 
+          ? 'Video uploaded successfully. Caption generation is in progress.'
+          : 'Video uploaded with caption successfully',
         data: {
           video: {
             id: String(uploadedVideo._id),
@@ -258,14 +316,16 @@ const uploadVideoWithCaption = catchAsync(
             duration: uploadedVideo.duration,
             thumbnail: uploadedVideo.thumbnail,
             created_at: uploadedVideo.createdAt,
+            caption_status: uploadedVideo.captionStatus,
           },
-          caption: {
-            text: captionResult.caption,
+          caption: isCloudinaryUpload ? {
+            status: 'pending',
+            message: 'Caption generation will complete in approximately 30 seconds'
+          } : {
+            text: uploadedVideo.caption || '',
             style,
             platform,
-            character_count: captionResult.caption.length,
-            hashtag_count: captionResult.hashtags.length,
-            hashtags: captionResult.hashtags,
+            status: 'completed'
           },
         },
       });

@@ -1,9 +1,9 @@
+import { v2 as cloudinary } from 'cloudinary';
 import type { Request } from 'express';
 import fs from 'fs';
 import multer from 'multer';
-import path from 'path';
-import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import path from 'path';
 import config from '../config';
 
 // Configure Cloudinary
@@ -20,9 +20,13 @@ const cloudinaryVideoStorage = new CloudinaryStorage({
     folder: 'kocial-pilot/videos', // Folder name in Cloudinary
     allowed_formats: ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'],
     resource_type: 'video',
-    transformation: [
-      { quality: 'auto' }, // Automatic quality optimization
+    // Use eager transformations with async processing for large videos
+    eager: [
+      { quality: 'auto', format: 'mp4' }
     ],
+    eager_async: true,
+    // Increase timeout for large files
+    timeout: 120000, // 2 minutes
   } as CloudinaryStorage['params'],
 });
 
@@ -75,7 +79,7 @@ export const videoUpload = multer({
   storage: videoStorage,
   fileFilter: videoFileFilter,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit for videos
+    fileSize: 500 * 1024 * 1024, // 500MB limit for videos
   },
 });
 

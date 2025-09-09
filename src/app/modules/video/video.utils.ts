@@ -1,7 +1,7 @@
+import ffmpeg from 'fluent-ffmpeg';
 import fs from 'fs';
 import path from 'path';
-import ffmpeg from 'fluent-ffmpeg';
-import { SUPPORTED_VIDEO_FORMATS, MAX_VIDEO_SIZE } from './video.constant';
+import { MAX_VIDEO_SIZE, SUPPORTED_VIDEO_FORMATS } from './video.constant';
 
 /**
  * Check if the uploaded file is a valid video format
@@ -132,8 +132,8 @@ export const formatVideoDuration = (seconds: number): string => {
 /**
  * Validate video upload data
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const validateVideoUpload = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   file: any
 ): { isValid: boolean; error?: string } => {
   if (!file) {

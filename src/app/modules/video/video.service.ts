@@ -19,6 +19,7 @@ import { Post } from '../mongo-posts/mongo-posts.model';
 import { IMongoPost } from '../mongo-posts/mongo-posts.interface';
 import { generateVideoThumbnail } from './video.utils';
 import { VIDEO_THUMBNAIL_PATH } from './video.constant';
+import { cloudinary } from '../../middlewares/videoMulter';
 
 const uploadVideo = async (
   videoData: IVideoUpload,
@@ -66,7 +67,7 @@ const uploadVideo = async (
   // Determine the correct URL based on storage type
   let videoUrl: string;
   let cloudinaryPublicId: string | undefined;
-  
+
   if (file.path && file.path.startsWith('http')) {
     // Cloudinary upload - use the direct URL
     videoUrl = file.path;
@@ -220,12 +221,28 @@ const deleteVideo = async (id: string, userId: string): Promise<void> => {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
   }
 
-  // Delete physical file
-  if (fs.existsSync(video.path)) {
-    fs.unlinkSync(video.path);
+  // Delete from Cloudinary if it's a Cloudinary video
+  if (video.cloudinary_public_id) {
+    try {
+      await cloudinary.uploader.destroy(video.cloudinary_public_id, {
+        resource_type: 'video'
+      });
+      console.log(`✅ Video deleted from Cloudinary: ${video.cloudinary_public_id}`);
+    } catch (cloudinaryError) {
+      console.error(
+        'Failed to delete video from Cloudinary:',
+        cloudinaryError
+      );
+      // Continue execution even if Cloudinary deletion fails
+    }
+  } else {
+    // Delete local physical file
+    if (fs.existsSync(video.path)) {
+      fs.unlinkSync(video.path);
+    }
   }
 
-  // Delete thumbnail if exists
+  // Delete thumbnail if exists (always local for now)
   if (video.thumbnail && fs.existsSync(video.thumbnail)) {
     fs.unlinkSync(video.thumbnail);
   }
