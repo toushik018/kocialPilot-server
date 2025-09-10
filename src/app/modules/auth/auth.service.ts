@@ -76,6 +76,11 @@ const createUser = async (
     config.jwt_refresh_expires_in as string
   );
 
+  // Update last login time
+  await User.findByIdAndUpdate(user._id, {
+    lastLogin: new Date(),
+  });
+
   // Calculate token expiry time in milliseconds
   const expiresAt = Date.now() + 4 * 60 * 60 * 1000; // 4 hours
 

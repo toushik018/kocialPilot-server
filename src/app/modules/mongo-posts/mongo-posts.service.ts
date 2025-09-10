@@ -4,6 +4,7 @@ import { IGenericResponse } from '../../interface/common';
 import { IPaginationOptions } from '../../interface/pagination';
 import { IMongoPost, IMongoPostFilters } from './mongo-posts.interface';
 import { Post } from './mongo-posts.model';
+import { cloudinary } from '../../middlewares/multer';
 
 // Get user's schedule
 const getUserSchedule = async (userId: string) => {
@@ -326,6 +327,9 @@ const getAllPosts = async (
     const { searchTerm, status, platform, ...filtersData } = filters;
     const andConditions = [];
 
+    // Exclude soft-deleted posts by default
+    andConditions.push({ isDeleted: { $ne: true } });
+
     if (searchTerm) {
       andConditions.push({
         $or: ['caption', 'hashtags'].map((field) => ({
@@ -387,7 +391,10 @@ const getAllPosts = async (
 
 const getDraftPosts = async (): Promise<IMongoPost[]> => {
   try {
-    const result = await Post.find({ status: 'draft' });
+    const result = await Post.find({ 
+      status: 'draft',
+      isDeleted: { $ne: true }
+    });
     return result;
   } catch (error) {
     throw new Error(`Error getting draft posts: ${error}`);
@@ -396,7 +403,10 @@ const getDraftPosts = async (): Promise<IMongoPost[]> => {
 
 const getPostById = async (id: string): Promise<IMongoPost | null> => {
   try {
-    const result = await Post.findById(id);
+    const result = await Post.findOne({ 
+      _id: id,
+      isDeleted: { $ne: true }
+    });
     return result;
   } catch (error) {
     throw new Error(`Error getting post by ID: ${error}`);
@@ -419,10 +429,59 @@ const updatePost = async (
 
 const deletePost = async (id: string): Promise<IMongoPost | null> => {
   try {
-    const result = await Post.findByIdAndDelete(id);
+    // First get the post to check for Cloudinary assets
+    const post = await Post.findById(id);
+    if (!post) {
+      return null;
+    }
+
+    // Delete image from Cloudinary if it exists
+    if (post.image_url && post.image_url.includes('cloudinary.com')) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const urlParts = post.image_url.split('/');
+        const publicIdWithExtension = urlParts[urlParts.length - 1];
+        const publicId = publicIdWithExtension.split('.')[0];
+        await cloudinary.uploader.destroy(publicId);
+      } catch (cloudinaryError) {
+        console.error('Failed to delete image from Cloudinary:', cloudinaryError);
+        // Continue execution even if Cloudinary deletion fails
+      }
+    }
+
+    // Delete video from Cloudinary if it exists
+    if (post.video_url && post.video_url.includes('cloudinary.com')) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const urlParts = post.video_url.split('/');
+        const publicIdWithExtension = urlParts[urlParts.length - 1];
+        const publicId = publicIdWithExtension.split('.')[0];
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+      } catch (cloudinaryError) {
+        console.error('Failed to delete video from Cloudinary:', cloudinaryError);
+        // Continue execution even if Cloudinary deletion fails
+      }
+    }
+
+    // Perform soft delete by setting isDeleted to true
+    const result = await Post.findByIdAndUpdate(
+      id,
+      { isDeleted: true },
+      { new: true }
+    );
     return result;
   } catch (error) {
     throw new Error(`Error deleting post: ${error}`);
+  }
+};
+
+// Add hard delete function for permanent removal
+const hardDeletePost = async (id: string): Promise<IMongoPost | null> => {
+  try {
+    const result = await Post.findByIdAndDelete(id);
+    return result;
+  } catch (error) {
+    throw new Error(`Error hard deleting post: ${error}`);
   }
 };
 
@@ -446,11 +505,176 @@ const getCalendarPosts = async (
           createdAt: { $gte: startDate, $lte: endDate },
         },
       ],
+      isDeleted: { $ne: true }
     });
 
     return result;
   } catch (error) {
     throw new Error(`Error getting calendar posts: ${error}`);
+  }
+};
+
+// Get recently deleted posts
+const getRecentlyDeletedPosts = async (
+  filters: IMongoPostFilters,
+  paginationOptions: IPaginationOptions
+): Promise<IGenericResponse<IMongoPost[]>> => {
+  try {
+    const { searchTerm, status, platform, ...filtersData } = filters;
+    const andConditions = [];
+
+    // Only get soft-deleted posts
+    andConditions.push({ isDeleted: true });
+
+    if (searchTerm) {
+      andConditions.push({
+        $or: ['caption', 'hashtags'].map((field) => ({
+          [field]: {
+            $regex: searchTerm,
+            $options: 'i',
+          },
+        })),
+      });
+    }
+
+    if (status) {
+      andConditions.push({ status });
+    }
+
+    if (platform) {
+      andConditions.push({ platform });
+    }
+
+    if (Object.keys(filtersData).length) {
+      andConditions.push({
+        $and: Object.entries(filtersData).map(([field, value]) => ({
+          [field]: value,
+        })),
+      });
+    }
+
+    const { page, limit, skip, sortBy, sortOrder } =
+      paginationHelpers.calculatePagination(paginationOptions);
+
+    const sortConditions: { [key: string]: SortOrder } = {};
+
+    if (sortBy && sortOrder) {
+      sortConditions[sortBy] = sortOrder;
+    }
+
+    const whereConditions =
+      andConditions.length > 0 ? { $and: andConditions } : {};
+
+    const result = await Post.find(whereConditions)
+      .sort(sortConditions)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Post.countDocuments(whereConditions);
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+      },
+      data: result,
+    };
+  } catch (error) {
+    throw new Error(`Error getting recently deleted posts: ${error}`);
+  }
+};
+
+// Restore a soft-deleted post
+const restorePost = async (id: string): Promise<IMongoPost | null> => {
+  try {
+    const result = await Post.findByIdAndUpdate(
+      id,
+      { isDeleted: false },
+      { new: true }
+    );
+    return result;
+  } catch (error) {
+    throw new Error(`Error restoring post: ${error}`);
+  }
+};
+
+// Permanently delete a post (hard delete with Cloudinary cleanup)
+const permanentlyDeletePost = async (id: string): Promise<IMongoPost | null> => {
+  try {
+    // First get the post to check for Cloudinary assets
+    const post = await Post.findById(id);
+    if (!post) {
+      return null;
+    }
+
+    // Delete image from Cloudinary if it exists
+    if (post.image_url && post.image_url.includes('cloudinary.com')) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const urlParts = post.image_url.split('/');
+        const publicIdWithExtension = urlParts[urlParts.length - 1];
+        const publicId = publicIdWithExtension.split('.')[0];
+        await cloudinary.uploader.destroy(publicId);
+      } catch (cloudinaryError) {
+        console.error('Failed to delete image from Cloudinary:', cloudinaryError);
+        // Continue execution even if Cloudinary deletion fails
+      }
+    }
+
+    // Delete video from Cloudinary if it exists
+    if (post.video_url && post.video_url.includes('cloudinary.com')) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const urlParts = post.video_url.split('/');
+        const publicIdWithExtension = urlParts[urlParts.length - 1];
+        const publicId = publicIdWithExtension.split('.')[0];
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+      } catch (cloudinaryError) {
+        console.error('Failed to delete video from Cloudinary:', cloudinaryError);
+        // Continue execution even if Cloudinary deletion fails
+      }
+    }
+
+    // Permanently delete from database
+    const result = await Post.findByIdAndDelete(id);
+    return result;
+  } catch (error) {
+    throw new Error(`Error permanently deleting post: ${error}`);
+  }
+};
+
+// Restore multiple posts
+const restoreMultiplePosts = async (postIds: string[]): Promise<IMongoPost[]> => {
+  try {
+    await Post.updateMany(
+      { _id: { $in: postIds }, isDeleted: true },
+      { isDeleted: false }
+    );
+    
+    // Return the updated posts
+    const updatedPosts = await Post.find({ _id: { $in: postIds } });
+    return updatedPosts;
+  } catch (error) {
+    throw new Error(`Error restoring multiple posts: ${error}`);
+  }
+};
+
+// Permanently delete multiple posts
+const permanentlyDeleteMultiplePosts = async (postIds: string[]): Promise<IMongoPost[]> => {
+  try {
+    const deletedPosts: IMongoPost[] = [];
+    
+    for (const id of postIds) {
+      const post = await permanentlyDeletePost(id);
+      if (post) {
+        deletedPosts.push(post);
+      }
+    }
+    
+    return deletedPosts;
+  } catch (error) {
+    throw new Error(`Error permanently deleting multiple posts: ${error}`);
   }
 };
 
@@ -463,7 +687,13 @@ export const MongoPostService = {
   getPostById,
   updatePost,
   deletePost,
+  hardDeletePost,
   getCalendarPosts,
   getUserSchedule,
   calculateNextScheduledDate,
+  getRecentlyDeletedPosts,
+  restorePost,
+  permanentlyDeletePost,
+  restoreMultiplePosts,
+  permanentlyDeleteMultiplePosts,
 };

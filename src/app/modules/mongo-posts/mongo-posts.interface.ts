@@ -19,6 +19,7 @@ export type IMongoPost = {
   status: 'draft' | 'published' | 'scheduled';
   platform?: 'facebook' | 'instagram' | 'twitter' | 'linkedin';
   auto_scheduled?: boolean;
+  isDeleted?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 };

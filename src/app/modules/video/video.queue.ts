@@ -1,4 +1,5 @@
 import { AIService } from '../ai/ai.service';
+import { AIContextService } from '../ai/ai.context.service';
 import { Video } from './video.model';
 import { IVideoDocument } from './video.interface';
 
@@ -47,7 +48,10 @@ class VideoCaptionQueue {
         throw new Error('Video not found');
       }
 
-      // Generate AI caption using the AI service
+      // Get user context for personalized caption generation
+      const userContext = await AIContextService.getUserContextForAI(job.userId);
+
+      // Generate AI caption using the AI service with user context
       const captionResult = await AIService.generateVideoCaption(
         job.videoPath,
         {
@@ -55,7 +59,8 @@ class VideoCaptionQueue {
           description: video.description,
           thumbnailPath: video.thumbnail,
           // duration: video.duration, // Add when video duration is implemented
-        }
+        },
+        userContext
       );
 
       // Combine caption and hashtags

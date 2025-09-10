@@ -146,6 +146,9 @@ const getAllVideos = async (
 
   const andConditions = [];
 
+  // Exclude soft-deleted videos by default
+  andConditions.push({ isDeleted: { $ne: true } });
+
   // Add userId filter
   if (userId) {
     andConditions.push({ userId });
@@ -213,7 +216,11 @@ const getVideoById = async (
   id: string,
   userId: string
 ): Promise<IVideoDocument | null> => {
-  const result = await Video.findOne({ _id: id, userId });
+  const result = await Video.findOne({ 
+    _id: id, 
+    userId,
+    isDeleted: { $ne: true }
+  });
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
   }
@@ -245,6 +252,64 @@ const updateVideo = async (
 };
 
 const deleteVideo = async (id: string, userId: string): Promise<void> => {
+  const video = await Video.findOne({ _id: id, userId });
+  if (!video) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+  }
+
+  // Delete from Cloudinary if it's a Cloudinary video
+  if (video.cloudinary_public_id) {
+    try {
+      await cloudinary.uploader.destroy(video.cloudinary_public_id, {
+        resource_type: 'video'
+      });
+      console.log(`✅ Video deleted from Cloudinary: ${video.cloudinary_public_id}`);
+    } catch (cloudinaryError) {
+      console.error(
+        'Failed to delete video from Cloudinary:',
+        cloudinaryError
+      );
+      // Continue execution even if Cloudinary deletion fails
+    }
+  } else {
+    // Delete local physical file
+    if (fs.existsSync(video.path)) {
+      fs.unlinkSync(video.path);
+    }
+  }
+
+  // Delete thumbnail if exists
+  if (video.thumbnail) {
+    if (video.thumbnail_cloudinary_public_id) {
+      // Delete thumbnail from Cloudinary
+      try {
+        await cloudinary.uploader.destroy(video.thumbnail_cloudinary_public_id, {
+          resource_type: 'image'
+        });
+        console.log(`✅ Thumbnail deleted from Cloudinary: ${video.thumbnail_cloudinary_public_id}`);
+      } catch (cloudinaryError) {
+        console.error(
+          'Failed to delete thumbnail from Cloudinary:',
+          cloudinaryError
+        );
+      }
+    } else {
+      // Delete local thumbnail file
+      const thumbnailPath = video.thumbnail.startsWith('/uploads')
+        ? path.join(process.cwd(), video.thumbnail)
+        : video.thumbnail;
+      if (fs.existsSync(thumbnailPath)) {
+        fs.unlinkSync(thumbnailPath);
+      }
+    }
+  }
+
+  // Perform soft delete by setting isDeleted to true
+  await Video.findByIdAndUpdate(id, { isDeleted: true });
+};
+
+// Add hard delete function for permanent removal
+const hardDeleteVideo = async (id: string, userId: string): Promise<void> => {
   const video = await Video.findOne({ _id: id, userId });
   if (!video) {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
@@ -484,6 +549,7 @@ const getScheduledVideos = async (
     userId,
     isScheduled: true,
     scheduledDate: { $gte: new Date() },
+    isDeleted: { $ne: true }
   }).sort({ scheduledDate: 1 });
 
   return result;
@@ -527,6 +593,7 @@ export const VideoService = {
   getVideoById,
   updateVideo,
   deleteVideo,
+  hardDeleteVideo,
   scheduleVideo,
   scheduleVideoSmart,
   bulkScheduleVideos,

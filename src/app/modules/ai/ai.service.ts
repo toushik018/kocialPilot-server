@@ -7,123 +7,104 @@ const openai = new OpenAI({
   apiKey: config.openai.apiKey,
 });
 
+// Cache for user contexts to reduce API calls
+interface UserContext {
+  userId: string;
+  name: string;
+  contentStyle: string;
+  defaultPlatforms: string[];
+}
+
+const userContextCache = new Map<string, { context: UserContext; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Generate a caption for an image
  * @param imagePath Path to the image file or Cloudinary URL
+ * @param userId User ID for personalized captions
  * @returns Generated caption and hashtags
  */
-const generateImageCaption = async (imagePath: string) => {
+const generateImageCaption = async (
+  imagePath: string,
+  userId: string
+): Promise<{ caption: string; hashtags: string[] }> => {
   try {
-    let base64Image: string;
-    let mimeType = 'image/jpeg';
-
-    if (imagePath.startsWith('http')) {
-      // Cloudinary or external URL - fetch the image
-      const response = await fetch(imagePath);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch image from URL: ${response.statusText}`
-        );
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      base64Image = buffer.toString('base64');
-
-      // Try to determine mime type from response headers or URL
-      const contentType = response.headers.get('content-type');
-      if (contentType) {
-        mimeType = contentType;
-      } else {
-        // Fallback: guess from URL extension
-        const urlLower = imagePath.toLowerCase();
-        if (urlLower.includes('.png')) mimeType = 'image/png';
-        else if (urlLower.includes('.webp')) mimeType = 'image/webp';
-        else if (urlLower.includes('.gif')) mimeType = 'image/gif';
-        // Default to jpeg for others
-      }
+    // Get cached user context or fetch new one
+    let userContext = null;
+    const now = Date.now();
+    const cached = userContextCache.get(userId);
+    
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      userContext = cached.context;
     } else {
-      // Local file path
-      const imageBuffer = await fs.readFile(imagePath);
-      base64Image = imageBuffer.toString('base64');
-      // Keep default mimeType = 'image/jpeg'
+      // In a real implementation, this would fetch from AIContextService
+      // For now, we'll use a simple context structure
+      userContext = {
+        userId,
+        name: 'User',
+        contentStyle: 'engaging',
+        defaultPlatforms: ['instagram', 'twitter']
+      };
+      userContextCache.set(userId, { context: userContext, timestamp: now });
     }
 
-    // Call OpenAI API to generate caption
+    // Determine if it's a Cloudinary URL or local path
+     const isCloudinaryUrl = imagePath.includes('cloudinary.com');
+     const imageUrl = isCloudinaryUrl ? imagePath : `http://localhost:8000${imagePath}`;
+
+    // Use faster GPT-4o-mini for better performance
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: [
-        {
-          role: 'system',
-          content:
-            "You are a social media content expert. Generate a compelling, engaging caption for the uploaded image. The caption should be attention-grabbing, relevant to the image content, and optimized for social media engagement. Also generate 3-5 relevant hashtags that would help increase the post's reach.",
-        },
         {
           role: 'user',
           content: [
             {
               type: 'text',
-              text: 'Generate a compelling social media caption for this image along with 3-5 relevant hashtags.',
+              text: `Generate an engaging social media caption for this image. User context: ${JSON.stringify(userContext)}. 
+              
+              Provide JSON response:
+              {
+                "caption": "compelling 2-3 sentence caption",
+                "hashtags": ["5-8 relevant hashtags"]
+              }`,
             },
             {
               type: 'image_url',
               image_url: {
-                url: `data:${mimeType};base64,${base64Image}`,
+                url: imageUrl,
+                detail: 'low' // Use low detail for faster processing
               },
             },
           ],
         },
       ],
-      max_tokens: 300,
+      max_tokens: 200, // Reduced tokens for faster response
+      temperature: 0.7, // Slightly more deterministic
     });
 
-    // Extract caption and hashtags from response
-    const generatedText = response.choices[0]?.message?.content || '';
-
-    // Split the response into caption and hashtags
-    const parts = generatedText.split(/\n\n|\n/);
-    let caption = '';
-    let hashtags: string[] = [];
-
-    // Extract hashtags (words starting with #)
-    const hashtagRegex = /#[\w\d]+/g;
-    const matches = generatedText.match(hashtagRegex);
-
-    if (matches && matches.length > 0) {
-      hashtags = matches;
-      // Remove hashtags from the caption
-      caption = generatedText.replace(hashtagRegex, '').trim();
-    } else {
-      caption = parts[0] || generatedText;
-      // If no hashtags found, generate some based on the caption
-      const hashtagResponse = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Generate 3-5 relevant hashtags for the following social media caption. Return only the hashtags, separated by spaces.',
-          },
-          {
-            role: 'user',
-            content: caption,
-          },
-        ],
-        max_tokens: 50,
-      });
-
-      const generatedHashtags =
-        hashtagResponse.choices[0]?.message?.content || '';
-      hashtags = generatedHashtags.match(hashtagRegex) || [];
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
     }
 
-    return {
-      caption: caption.trim(),
-      hashtags: hashtags,
-    };
+    // Parse the JSON response with fallback
+    try {
+      const result = JSON.parse(content);
+      return {
+        caption: result.caption || 'Generated caption',
+        hashtags: result.hashtags || [],
+      };
+    } catch {
+       // Fallback if JSON parsing fails
+       return {
+         caption: content.substring(0, 200),
+         hashtags: ['#socialmedia', '#content'],
+       };
+     }
   } catch (error) {
-    console.error('Error generating caption:', error);
-    throw new Error('Failed to generate caption');
+    console.error('Error generating image caption:', error);
+    throw new Error(`Caption generation failed: ${error}`);
   }
 };
 
@@ -207,6 +188,7 @@ const generateAltText = async (imagePath: string) => {
  * Generate a caption for a video
  * @param videoPath Path to the video file or Cloudinary URL
  * @param videoMetadata Optional metadata about the video (duration, size, etc.)
+ * @param userContext Optional user context for personalization
  * @returns Generated caption and hashtags
  */
 const generateVideoCaption = async (
@@ -216,6 +198,22 @@ const generateVideoCaption = async (
     filename?: string;
     description?: string;
     thumbnailPath?: string;
+  },
+  userContext?: {
+    userId?: string;
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+    language?: string;
+    timezone?: string;
+    defaultPlatforms?: string[];
+    recentCaptions?: string[];
+    contentStyle?: string;
+    userStats?: {
+      totalPosts: number;
+      totalVideos: number;
+      accountAge: number;
+    };
   }
 ) => {
   try {
@@ -254,21 +252,59 @@ const generateVideoCaption = async (
           base64Image = imageBuffer.toString('base64');
         }
 
+        // Build personalized system prompt based on user context
+        let systemPrompt = 'You are a social media content expert. Analyze this video thumbnail and generate a compelling, engaging caption for the video. The caption should be attention-grabbing, relevant to what you see in the image, and optimized for social media engagement. Also generate 3-5 relevant hashtags based on the visual content.';
+        
+        if (userContext) {
+          if (userContext.name || userContext.firstName) {
+            const userName = userContext.name || userContext.firstName;
+            systemPrompt += ` The content creator is ${userName}.`;
+          }
+          
+          if (userContext.defaultPlatforms && userContext.defaultPlatforms.length > 0) {
+            systemPrompt += ` This content will primarily be shared on ${userContext.defaultPlatforms.join(', ')}.`;
+          }
+          
+          if (userContext.contentStyle) {
+            systemPrompt += ` The user prefers a ${userContext.contentStyle} style of content.`;
+          }
+          
+          if (userContext.userStats) {
+            if (userContext.userStats.accountAge < 30) {
+              systemPrompt += ' This is from a newer content creator, so make the caption approachable and engaging for building an audience.';
+            } else if (userContext.userStats.totalVideos > 50) {
+              systemPrompt += ' This is from an experienced content creator with a substantial video library.';
+            }
+          }
+          
+          if (userContext.recentCaptions && userContext.recentCaptions.length > 0) {
+            systemPrompt += ` For consistency with their content style, here are some recent captions they've used: ${userContext.recentCaptions.slice(0, 3).join('; ')}.`;
+          }
+        }
+
+        // Build user prompt with context
+        let userPrompt = `Generate a compelling social media caption for this video thumbnail. ${videoMetadata.description ? `Additional context: ${videoMetadata.description}` : ''} ${videoMetadata.duration ? `Video duration: ${Math.round(videoMetadata.duration)} seconds.` : ''}`;
+        
+        if (userContext?.language && userContext.language !== 'en') {
+          userPrompt += ` Generate the caption in ${userContext.language} language.`;
+        }
+        
+        userPrompt += ' Include 3-5 relevant hashtags.';
+
         // Use OpenAI Vision API to analyze the thumbnail
         const response = await openai.chat.completions.create({
           model: 'gpt-4o',
           messages: [
             {
               role: 'system',
-              content:
-                'You are a social media content expert. Analyze this video thumbnail and generate a compelling, engaging caption for the video. The caption should be attention-grabbing, relevant to what you see in the image, and optimized for social media engagement. Also generate 3-5 relevant hashtags based on the visual content.',
+              content: systemPrompt,
             },
             {
               role: 'user',
               content: [
                 {
                   type: 'text',
-                  text: `Generate a compelling social media caption for this video thumbnail. ${videoMetadata.description ? `Additional context: ${videoMetadata.description}` : ''} ${videoMetadata.duration ? `Video duration: ${Math.round(videoMetadata.duration)} seconds.` : ''} Include 3-5 relevant hashtags.`,
+                  text: userPrompt,
                 },
                 {
                   type: 'image_url',
@@ -340,6 +376,36 @@ const generateVideoCaption = async (
     const duration = videoMetadata?.duration;
     const description = videoMetadata?.description;
 
+    // Build personalized system prompt for fallback
+    let fallbackSystemPrompt = 'You are a social media content expert. Generate compelling, engaging captions for video content. The caption should be attention-grabbing, create curiosity, and be optimized for social media engagement. Always include 3-5 relevant hashtags.';
+    
+    if (userContext) {
+      if (userContext.name || userContext.firstName) {
+        const userName = userContext.name || userContext.firstName;
+        fallbackSystemPrompt += ` The content creator is ${userName}.`;
+      }
+      
+      if (userContext.defaultPlatforms && userContext.defaultPlatforms.length > 0) {
+        fallbackSystemPrompt += ` This content will primarily be shared on ${userContext.defaultPlatforms.join(', ')}.`;
+      }
+      
+      if (userContext.contentStyle) {
+        fallbackSystemPrompt += ` The user prefers a ${userContext.contentStyle} style of content.`;
+      }
+      
+      if (userContext.userStats) {
+        if (userContext.userStats.accountAge < 30) {
+          fallbackSystemPrompt += ' This is from a newer content creator, so make the caption approachable and engaging for building an audience.';
+        } else if (userContext.userStats.totalVideos > 50) {
+          fallbackSystemPrompt += ' This is from an experienced content creator with a substantial video library.';
+        }
+      }
+      
+      if (userContext.recentCaptions && userContext.recentCaptions.length > 0) {
+        fallbackSystemPrompt += ` For consistency with their content style, here are some recent captions they've used: ${userContext.recentCaptions.slice(0, 3).join('; ')}.`;
+      }
+    }
+
     let prompt = `Generate a compelling, engaging social media caption for a video file named "${filename}".`;
 
     if (duration) {
@@ -350,6 +416,10 @@ const generateVideoCaption = async (
       prompt += ` Additional context: ${description}.`;
     }
 
+    if (userContext?.language && userContext.language !== 'en') {
+      prompt += ` Generate the caption in ${userContext.language} language.`;
+    }
+
     prompt += ` Create an engaging caption that would work well for social media. Focus on creating excitement and encouraging engagement. Also generate 3-5 relevant hashtags. Format the response with the caption first, followed by hashtags.`;
 
     const response = await openai.chat.completions.create({
@@ -357,8 +427,7 @@ const generateVideoCaption = async (
       messages: [
         {
           role: 'system',
-          content:
-            'You are a social media content expert. Generate compelling, engaging captions for video content. The caption should be attention-grabbing, create curiosity, and be optimized for social media engagement. Always include 3-5 relevant hashtags.',
+          content: fallbackSystemPrompt,
         },
         {
           role: 'user',

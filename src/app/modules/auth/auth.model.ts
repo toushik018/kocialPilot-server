@@ -83,6 +83,15 @@ const userSchema = new Schema<IUser>(
       enum: ['user', 'admin'],
       default: 'user',
     },
+    lastLogin: {
+      type: Date,
+    },
+    lastLogout: {
+      type: Date,
+    },
+    passwordChangedAt: {
+      type: Date,
+    },
     preferences: {
       timezone: {
         type: String,

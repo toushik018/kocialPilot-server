@@ -38,6 +38,9 @@ export interface IUser extends IBaseDocument {
   isEmailVerified: boolean;
   isActive: boolean;
   role: 'user' | 'admin';
+  lastLogin?: Date;
+  lastLogout?: Date;
+  passwordChangedAt?: Date;
   preferences: {
     timezone?: string;
     language?: string;

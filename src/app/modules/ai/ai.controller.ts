@@ -50,8 +50,8 @@ const uploadImageWithCaption = catchAsync(
       let altText = '';
 
       try {
-        // Generate caption and hashtags
-        captionResult = await AIService.generateImageCaption(imagePath);
+        // Generate caption and hashtags with userId
+        captionResult = await AIService.generateImageCaption(imagePath, userId);
 
         // Generate alt text
         altText = await AIService.generateAltText(imagePath);

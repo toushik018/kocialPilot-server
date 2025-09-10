@@ -8,8 +8,25 @@ export type IMongoPdf = {
   fileSize: number;
   fileType: string;
   owner: Types.ObjectId;
+  textContent?: string;
+  summary?: string;
+  metadata?: {
+    pageCount?: number;
+    author?: string;
+    subject?: string;
+    keywords?: string[];
+    creationDate?: Date;
+    modificationDate?: Date;
+  };
+  analysisStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  isDeleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 };
 
 export type MongoPdfModel = Model<IMongoPdf>;
+
+export type IPdfAnalyzeRequest = {
+  userId: string;
+  additionalInfo?: string;
+};

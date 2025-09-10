@@ -2,20 +2,27 @@ import { Router } from 'express';
 
 import { AIRoutes } from '../app/modules/ai/ai.route';
 import { AuthRoute } from '../app/modules/auth/auth.route';
+import { CleanupRoutes } from '../app/modules/cleanup/cleanup.route';
 import { DashboardRoutes } from '../app/modules/dashboard/dashboard.route';
 import { ImageRoutes } from '../app/modules/image/image.route';
 import { MongoPdfRoutes } from '../app/modules/mongo-pdf/mongo-pdf.route';
 import { MongoPostRoutes } from '../app/modules/mongo-posts/mongo-posts.route';
 import { ScheduleRoutes } from '../app/modules/schedule/schedule.route';
+import { SettingsRoutes } from '../app/modules/settings/settings.route';
 import { SocialMediaRoutes } from '../app/modules/social-media/social-media.route';
+import { UserRoutes } from '../app/modules/user/user.route';
 import { VideoRoutes } from '../app/modules/video/video.route';
 
 const router = Router();
 
 const moduleRoutes = [
   {
-    path: '/users',
+    path: '/auth',
     route: AuthRoute,
+  },
+  {
+    path: '/users',
+    route: UserRoutes,
   },
   {
     path: '/mongo-posts',
@@ -42,12 +49,20 @@ const moduleRoutes = [
     route: ScheduleRoutes,
   },
   {
+    path: '/settings',
+    route: SettingsRoutes,
+  },
+  {
     path: '/ai',
     route: AIRoutes,
   },
   {
     path: '/videos',
     route: VideoRoutes,
+  },
+  {
+    path: '/cleanup',
+    route: CleanupRoutes,
   },
 ];
 

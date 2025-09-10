@@ -89,6 +89,10 @@ const videoSchema = new Schema<IVideoDocument>(
       type: String,
       required: false, // Optional field for Cloudinary thumbnails
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

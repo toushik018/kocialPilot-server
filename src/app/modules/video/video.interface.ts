@@ -23,6 +23,7 @@ export interface IVideo {
   description?: string;
   cloudinary_public_id?: string;
   thumbnail_cloudinary_public_id?: string;
+  isDeleted?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +49,7 @@ export interface IVideoDocument extends Document {
   description?: string;
   cloudinary_public_id?: string;
   thumbnail_cloudinary_public_id?: string;
+  isDeleted?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

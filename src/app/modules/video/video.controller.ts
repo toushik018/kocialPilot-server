@@ -245,6 +245,11 @@ const uploadVideoWithCaption = catchAsync(
         setTimeout(async () => {
           try {
             const { AIService } = await import('../ai/ai.service');
+            const { AIContextService } = await import('../ai/ai.context.service');
+            
+            // Get user context for personalized caption generation
+            const userContext = await AIContextService.getUserContextForAI(userId);
+            
             const captionResult = await AIService.generateVideoCaption(
               uploadedVideo.path,
               {
@@ -252,7 +257,8 @@ const uploadVideoWithCaption = catchAsync(
                 filename: uploadedVideo.originalName,
                 description: uploadedVideo.description,
                 thumbnailPath: uploadedVideo.thumbnail,
-              }
+              },
+              userContext
             );
             
             await VideoService.updateCaptionStatus(
@@ -272,6 +278,11 @@ const uploadVideoWithCaption = catchAsync(
         // Local upload - process immediately
         try {
           const { AIService } = await import('../ai/ai.service');
+          const { AIContextService } = await import('../ai/ai.context.service');
+          
+          // Get user context for personalized caption generation
+          const userContext = await AIContextService.getUserContextForAI(userId);
+          
           const captionResult = await AIService.generateVideoCaption(
             uploadedVideo.path,
             {
@@ -279,7 +290,8 @@ const uploadVideoWithCaption = catchAsync(
               filename: uploadedVideo.originalName,
               description: uploadedVideo.description,
               thumbnailPath: uploadedVideo.thumbnail,
-            }
+            },
+            userContext
           );
           
           await VideoService.updateCaptionStatus(

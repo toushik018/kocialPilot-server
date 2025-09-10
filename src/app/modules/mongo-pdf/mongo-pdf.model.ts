@@ -27,6 +27,29 @@ const MongoPdfSchema = new Schema<IMongoPdf>(
       ref: 'User',
       required: true,
     },
+    textContent: {
+      type: String,
+    },
+    summary: {
+      type: String,
+    },
+    metadata: {
+      pageCount: Number,
+      author: String,
+      subject: String,
+      keywords: [String],
+      creationDate: Date,
+      modificationDate: Date,
+    },
+    analysisStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'completed', 'failed'],
+      default: 'pending',
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

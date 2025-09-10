@@ -865,6 +865,187 @@ const deleteSingleDraftPost = catchAsync(
   }
 );
 
+// Get recently deleted posts
+const getRecentlyDeletedPosts = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const filters = pick(req.query, [
+      'searchTerm',
+      'title',
+      'status',
+      'platform',
+    ]);
+    const paginationOptions = pick(req.query, paginationFields);
+
+    const result = await MongoPostService.getRecentlyDeletedPosts(
+      filters,
+      paginationOptions
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Recently deleted posts retrieved successfully',
+      data: result,
+    });
+  }
+);
+
+// Restore a deleted post
+const restorePost = catchAsync(async (req: CustomRequest, res: Response) => {
+  const id = req.params.id;
+
+  const result = await MongoPostService.restorePost(id);
+
+  if (!result) {
+    return sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: 'Post not found',
+    });
+  }
+
+  sendResponse<IMongoPost>(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Post restored successfully',
+    data: result,
+  });
+});
+
+// Permanently delete a post
+const permanentlyDeletePost = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const id = req.params.id;
+
+    const result = await MongoPostService.permanentlyDeletePost(id);
+
+    if (!result) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    sendResponse<IMongoPost>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Post permanently deleted successfully',
+      data: result,
+    });
+  }
+);
+
+// Restore multiple posts
+const restoreMultiplePosts = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const { postIds } = req.body;
+
+    try {
+      if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Post IDs are required',
+        });
+      }
+
+      const restoredPosts = [];
+      const errors = [];
+
+      for (const id of postIds) {
+        try {
+          const result = await MongoPostService.restorePost(id);
+
+          if (result) {
+            restoredPosts.push(result);
+          } else {
+            errors.push(`Post with ID ${id} not found`);
+          }
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          errors.push(`Error restoring post ${id}: ${errorMessage}`);
+        }
+      }
+
+      sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: `${restoredPosts.length} posts restored successfully`,
+        data: {
+          restoredPosts,
+          errors: errors.length > 0 ? errors : undefined,
+        },
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to restore posts';
+      sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: errorMessage,
+      });
+    }
+  }
+);
+
+// Permanently delete multiple posts
+const permanentlyDeleteMultiplePosts = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const { postIds } = req.body;
+
+    try {
+      if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Post IDs are required',
+        });
+      }
+
+      const deletedPosts = [];
+      const errors = [];
+
+      for (const id of postIds) {
+        try {
+          const result = await MongoPostService.permanentlyDeletePost(id);
+
+          if (result) {
+            deletedPosts.push(result);
+          } else {
+            errors.push(`Post with ID ${id} not found`);
+          }
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          errors.push(`Error deleting post ${id}: ${errorMessage}`);
+        }
+      }
+
+      sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: `${deletedPosts.length} posts permanently deleted successfully`,
+        data: {
+          deletedPosts,
+          errors: errors.length > 0 ? errors : undefined,
+        },
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to permanently delete posts';
+      sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: errorMessage,
+      });
+    }
+  }
+);
+
 export const MongoPostController = {
   createPost,
   uploadImagePost,
@@ -881,4 +1062,9 @@ export const MongoPostController = {
   scheduleSingleDraftPost,
   deleteMultipleDraftPosts,
   deleteSingleDraftPost,
+  getRecentlyDeletedPosts,
+  restorePost,
+  permanentlyDeletePost,
+  restoreMultiplePosts,
+  permanentlyDeleteMultiplePosts,
 };
