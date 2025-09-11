@@ -255,19 +255,29 @@ const updateVideo = async (
 };
 
 const deleteVideo = async (id: string, userId: string): Promise<void> => {
-  console.log(`[DELETE VIDEO] Attempting to delete video with ID: ${id} for user: ${userId}`);
-  
+  console.log(
+    `[DELETE VIDEO] Attempting to delete video with ID: ${id} for user: ${userId}`
+  );
+
   const video = await Video.findOne({ _id: id, userId });
   console.log(`[DELETE VIDEO] Video found:`, video ? 'Yes' : 'No');
-  
+
   if (!video) {
-    console.log(`[DELETE VIDEO] Video not found - ID: ${id}, UserID: ${userId}`);
+    console.log(
+      `[DELETE VIDEO] Video not found - ID: ${id}, UserID: ${userId}`
+    );
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
   }
 
   // Perform soft delete by setting isDeleted to true and deletedAt timestamp
-  const result = await Video.findByIdAndUpdate(id, { isDeleted: true, deletedAt: new Date() });
-  console.log(`[DELETE VIDEO] Video deleted successfully:`, result ? 'Yes' : 'No');
+  const result = await Video.findByIdAndUpdate(id, {
+    isDeleted: true,
+    deletedAt: new Date(),
+  });
+  console.log(
+    `[DELETE VIDEO] Video deleted successfully:`,
+    result ? 'Yes' : 'No'
+  );
 };
 
 // Add hard delete function for permanent removal
@@ -524,11 +534,15 @@ const getScheduledVideos = async (
 const updateCaptionStatus = async (
   videoId: string,
   status: 'pending' | 'generating' | 'completed' | 'failed',
-  caption?: string
+  caption?: string,
+  hashtags?: string[]
 ): Promise<IVideoDocument | null> => {
   const updateData: Partial<IVideoDocument> = { captionStatus: status };
   if (caption) {
     updateData.caption = caption;
+  }
+  if (hashtags) {
+    updateData.hashtags = hashtags;
   }
 
   const result = await Video.findByIdAndUpdate(videoId, updateData, {
@@ -625,12 +639,15 @@ const getRecentlyDeletedVideos = async (
 const restoreVideo = async (id: string, userId: string): Promise<void> => {
   const video = await Video.findOne({ _id: id, userId, isDeleted: true });
   if (!video) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Video not found in recently deleted');
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'Video not found in recently deleted'
+    );
   }
 
-  await Video.findByIdAndUpdate(id, { 
-    isDeleted: false, 
-    deletedAt: null 
+  await Video.findByIdAndUpdate(id, {
+    isDeleted: false,
+    deletedAt: null,
   });
 };
 

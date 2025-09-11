@@ -163,7 +163,11 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
   const userId = req.user?.userId;
 
   // Get posts from mongo-posts with userId filtering
-  const result = await MongoPostService.getAllPosts(filters, paginationOptions, userId);
+  const result = await MongoPostService.getAllPosts(
+    filters,
+    paginationOptions,
+    userId
+  );
 
   // Get videos from video service with proper filters
   const videoFilters = {

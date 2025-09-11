@@ -24,17 +24,19 @@ const createDocument = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getAllDocuments = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
-  const userId = req.user?.userId;
-  const result = await MongoPdfService.getAllDocuments(userId);
+const getAllDocuments = catchAsync(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user?.userId;
+    const result = await MongoPdfService.getAllDocuments(userId);
 
-  sendResponse<IMongoPdf[]>(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Documents retrieved successfully',
-    data: result,
-  });
-});
+    sendResponse<IMongoPdf[]>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Documents retrieved successfully',
+      data: result,
+    });
+  }
+);
 
 const getDocumentById = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
@@ -133,26 +135,28 @@ const getUserDocuments = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getRecentlyDeletedDocuments = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.params.userId;
+const getRecentlyDeletedDocuments = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.params.userId;
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'User ID is required',
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'User ID is required',
+      });
+    }
+
+    const result = await MongoPdfService.getRecentlyDeletedDocuments(userId);
+
+    sendResponse<IMongoPdf[]>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Recently deleted documents retrieved successfully',
+      data: result,
     });
   }
-
-  const result = await MongoPdfService.getRecentlyDeletedDocuments(userId);
-
-  sendResponse<IMongoPdf[]>(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Recently deleted documents retrieved successfully',
-    data: result,
-  });
-});
+);
 
 const restoreDocument = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
@@ -175,26 +179,28 @@ const restoreDocument = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const permanentlyDeleteDocument = catchAsync(async (req: Request, res: Response) => {
-  const id = req.params.id;
+const permanentlyDeleteDocument = catchAsync(
+  async (req: Request, res: Response) => {
+    const id = req.params.id;
 
-  const result = await MongoPdfService.permanentlyDeleteDocument(id);
+    const result = await MongoPdfService.permanentlyDeleteDocument(id);
 
-  if (!result) {
-    return sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'Document not found',
+    if (!result) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Document not found',
+      });
+    }
+
+    sendResponse<IMongoPdf>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Document permanently deleted successfully',
+      data: result,
     });
   }
-
-  sendResponse<IMongoPdf>(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Document permanently deleted successfully',
-    data: result,
-  });
-});
+);
 
 export const MongoPdfController = {
   createDocument,

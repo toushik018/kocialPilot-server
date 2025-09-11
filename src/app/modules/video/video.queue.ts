@@ -65,11 +65,13 @@ class VideoCaptionQueue {
         userContext
       );
 
-      // Combine caption and hashtags
-      const fullCaption = `${captionResult.caption}\n\n${captionResult.hashtags.join(' ')}`;
-
-      // Update video with generated caption
-      await this.updateCaptionStatus(job.videoId, 'completed', fullCaption);
+      // Update video with generated caption and hashtags separately
+      await this.updateCaptionStatus(
+        job.videoId,
+        'completed',
+        captionResult.caption,
+        captionResult.hashtags
+      );
 
       // Remove job from queue
       this.jobs.delete(jobId);
@@ -115,11 +117,15 @@ class VideoCaptionQueue {
   private async updateCaptionStatus(
     videoId: string,
     status: 'pending' | 'generating' | 'completed' | 'failed',
-    caption?: string
+    caption?: string,
+    hashtags?: string[]
   ): Promise<IVideoDocument | null> {
     const updateData: Partial<IVideoDocument> = { captionStatus: status };
     if (caption) {
       updateData.caption = caption;
+    }
+    if (hashtags) {
+      updateData.hashtags = hashtags;
     }
 
     const result = await Video.findByIdAndUpdate(videoId, updateData, {

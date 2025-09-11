@@ -13,6 +13,7 @@ export interface IVideo {
   duration?: number;
   thumbnail?: string;
   caption?: string;
+  hashtags?: string[];
   captionStatus: 'pending' | 'generating' | 'completed' | 'failed';
   scheduledDate?: Date;
   isScheduled: boolean;
@@ -40,6 +41,7 @@ export interface IVideoDocument extends Document {
   duration?: number;
   thumbnail?: string;
   caption?: string;
+  hashtags?: string[];
   captionStatus: 'pending' | 'generating' | 'completed' | 'failed';
   scheduledDate?: Date;
   isScheduled: boolean;

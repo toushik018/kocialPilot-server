@@ -34,9 +34,21 @@ router.get('/documents', MongoPdfController.getAllDocuments);
 router.get('/user/:userId', MongoPdfController.getUserDocuments);
 
 // Recent delete routes
-router.get('/recent-delete/:userId', auth(), MongoPdfController.getRecentlyDeletedDocuments);
-router.patch('/recent-delete/:id/restore', auth(), MongoPdfController.restoreDocument);
-router.delete('/recent-delete/:id/permanent', auth(), MongoPdfController.permanentlyDeleteDocument);
+router.get(
+  '/recent-delete/:userId',
+  auth(),
+  MongoPdfController.getRecentlyDeletedDocuments
+);
+router.patch(
+  '/recent-delete/:id/restore',
+  auth(),
+  MongoPdfController.restoreDocument
+);
+router.delete(
+  '/recent-delete/:id/permanent',
+  auth(),
+  MongoPdfController.permanentlyDeleteDocument
+);
 
 router.get('/:id', MongoPdfController.getDocumentById);
 

@@ -199,7 +199,8 @@ const processAISummary = async (documentId: string, prompt: string) => {
       messages: [
         {
           role: 'system',
-          content: 'You are an expert document analyzer. Create comprehensive, well-structured summaries of PDF documents. Focus on key points, main themes, and important details. Keep the summary informative yet concise.',
+          content:
+            'You are an expert document analyzer. Create comprehensive, well-structured summaries of PDF documents. Focus on key points, main themes, and important details. Keep the summary informative yet concise.',
         },
         {
           role: 'user',
@@ -210,7 +211,8 @@ const processAISummary = async (documentId: string, prompt: string) => {
       temperature: 0.3,
     });
 
-    const summary = response.choices[0]?.message?.content || 'Summary generation failed';
+    const summary =
+      response.choices[0]?.message?.content || 'Summary generation failed';
 
     await MongoPdf.findByIdAndUpdate(documentId, {
       summary,
@@ -233,7 +235,9 @@ const getAllDocumentsByUser = async (userId: string): Promise<IMongoPdf[]> => {
   return result;
 };
 
-const getRecentlyDeletedDocuments = async (userId: string): Promise<IMongoPdf[]> => {
+const getRecentlyDeletedDocuments = async (
+  userId: string
+): Promise<IMongoPdf[]> => {
   const result = await MongoPdf.find({
     owner: userId,
     isDeleted: true,
@@ -250,7 +254,9 @@ const restoreDocument = async (id: string): Promise<IMongoPdf | null> => {
   return result;
 };
 
-const permanentlyDeleteDocument = async (id: string): Promise<IMongoPdf | null> => {
+const permanentlyDeleteDocument = async (
+  id: string
+): Promise<IMongoPdf | null> => {
   const document = await MongoPdf.findById(id);
   if (document && document.fileUrl) {
     // Extract public_id from Cloudinary URL for deletion

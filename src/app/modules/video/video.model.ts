@@ -44,6 +44,10 @@ const videoSchema = new Schema<IVideoDocument>(
       type: String,
       default: null,
     },
+    hashtags: {
+      type: [String],
+      default: [],
+    },
     captionStatus: {
       type: String,
       enum: ['pending', 'generating', 'completed', 'failed'],

@@ -267,7 +267,8 @@ const uploadVideoWithCaption = catchAsync(
             await VideoService.updateCaptionStatus(
               String(uploadedVideo._id),
               'completed' as const,
-              captionResult.caption
+              captionResult.caption,
+              captionResult.hashtags
             );
           } catch (error) {
             console.error('Failed to generate caption for video:', error);
@@ -301,7 +302,8 @@ const uploadVideoWithCaption = catchAsync(
           await VideoService.updateCaptionStatus(
             String(uploadedVideo._id),
             'completed' as const,
-            captionResult.caption
+            captionResult.caption,
+            captionResult.hashtags
           );
         } catch (error) {
           console.error('Failed to generate caption for video:', error);
@@ -441,19 +443,21 @@ const restoreVideo = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const permanentlyDeleteVideo = catchAsync(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.userId || '';
+const permanentlyDeleteVideo = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.userId || '';
 
-  await VideoService.hardDeleteVideo(id, userId);
+    await VideoService.hardDeleteVideo(id, userId);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Video permanently deleted successfully',
-    data: null,
-  });
-});
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Video permanently deleted successfully',
+      data: null,
+    });
+  }
+);
 
 export const VideoController = {
   uploadVideo,
