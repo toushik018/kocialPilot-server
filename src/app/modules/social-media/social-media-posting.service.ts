@@ -27,7 +27,7 @@ export class SocialMediaPostingService {
   ): Promise<{ success: boolean; postId?: string; error?: string }> {
     try {
       const { accessToken, accountId } = account;
-      
+
       // Prepare post data
       const postData: Record<string, unknown> = {
         message: content.text || '',
@@ -52,7 +52,8 @@ export class SocialMediaPostingService {
         postId: response.data.id,
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       return {
         success: false,
         error: `Facebook posting failed: ${errorMessage}`,
@@ -109,7 +110,8 @@ export class SocialMediaPostingService {
         postId: publishResponse.data.id,
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       return {
         success: false,
         error: `Instagram posting failed: ${errorMessage}`,
@@ -163,7 +165,8 @@ export class SocialMediaPostingService {
         postId: response.data.data.id,
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       return {
         success: false,
         error: `Twitter posting failed: ${errorMessage}`,
@@ -189,7 +192,8 @@ export class SocialMediaPostingService {
             shareCommentary: {
               text: content.text || '',
             },
-            shareMediaCategory: content.imageUrl || content.link ? 'ARTICLE' : 'NONE',
+            shareMediaCategory:
+              content.imageUrl || content.link ? 'ARTICLE' : 'NONE',
             ...(content.link && {
               media: [
                 {
@@ -225,7 +229,8 @@ export class SocialMediaPostingService {
         postId: response.data.id,
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       return {
         success: false,
         error: `LinkedIn posting failed: ${errorMessage}`,
@@ -251,7 +256,7 @@ export class SocialMediaPostingService {
 
     for (const account of accounts) {
       let result;
-      
+
       switch (account.platform.toLowerCase()) {
         case 'facebook':
           result = await this.postToFacebook(account, content);
@@ -295,16 +300,17 @@ export class SocialMediaPostingService {
       // 1. Save the scheduled post to database
       // 2. Set up a job queue (like Bull or Agenda) to process it at the scheduled time
       // 3. Return the schedule ID
-      
+
       // For now, we'll just return a mock response
       const scheduleId = `schedule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       return {
         success: true,
         scheduleId,
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       return {
         success: false,
         error: `Scheduling failed: ${errorMessage}`,
@@ -374,7 +380,8 @@ export class SocialMediaPostingService {
         analytics,
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       return {
         success: false,
         error: `Analytics fetch failed: ${errorMessage}`,

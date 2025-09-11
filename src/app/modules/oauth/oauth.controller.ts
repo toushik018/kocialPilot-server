@@ -17,7 +17,7 @@ interface AuthRequest extends Request {
 // Facebook OAuth
 const getFacebookAuthUrl = catchAsync(async (req: Request, res: Response) => {
   const authUrl = OAuthService.getFacebookAuthUrl();
-  
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -26,41 +26,47 @@ const getFacebookAuthUrl = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const handleFacebookCallback = catchAsync(async (req: AuthRequest, res: Response) => {
-  const { code } = req.query;
-  const userId = req.user?.userId || req.user?.id;
+const handleFacebookCallback = catchAsync(
+  async (req: AuthRequest, res: Response) => {
+    const { code } = req.query;
+    const userId = req.user?.userId || req.user?.id;
 
-  if (!code || !userId) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.BAD_REQUEST,
-      success: false,
-      message: 'Authorization code and user ID are required',
+    if (!code || !userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        success: false,
+        message: 'Authorization code and user ID are required',
+      });
+    }
+
+    const tokenData = await OAuthService.exchangeFacebookCode(code as string);
+    const profile = await OAuthService.getFacebookProfile(
+      tokenData.access_token
+    );
+
+    // Save to database
+    await SocialMediaService.createAccount({
+      platform: 'facebook',
+      accountName: profile.name || 'Facebook Account',
+      accountId: profile.id,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      tokenExpiry: tokenData.expires_in
+        ? new Date(Date.now() + tokenData.expires_in * 1000)
+        : undefined,
+      isConnected: true,
+      owner: new Types.ObjectId(userId),
     });
+
+    // Redirect to frontend with success
+    res.redirect(`${config.frontend_url}/settings?connected=facebook`);
   }
-
-  const tokenData = await OAuthService.exchangeFacebookCode(code as string);
-  const profile = await OAuthService.getFacebookProfile(tokenData.access_token);
-
-  // Save to database
-  await SocialMediaService.createAccount({
-    platform: 'facebook',
-    accountName: profile.name || 'Facebook Account',
-    accountId: profile.id,
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
-    tokenExpiry: tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000) : undefined,
-    isConnected: true,
-    owner: new Types.ObjectId(userId),
-  });
-
-  // Redirect to frontend with success
-  res.redirect(`${config.frontend_url}/settings?connected=facebook`);
-});
+);
 
 // Instagram OAuth
 const getInstagramAuthUrl = catchAsync(async (req: Request, res: Response) => {
   const authUrl = OAuthService.getInstagramAuthUrl();
-  
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -69,41 +75,47 @@ const getInstagramAuthUrl = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const handleInstagramCallback = catchAsync(async (req: AuthRequest, res: Response) => {
-  const { code } = req.query;
-  const userId = req.user?.userId || req.user?.id;
+const handleInstagramCallback = catchAsync(
+  async (req: AuthRequest, res: Response) => {
+    const { code } = req.query;
+    const userId = req.user?.userId || req.user?.id;
 
-  if (!code || !userId) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.BAD_REQUEST,
-      success: false,
-      message: 'Authorization code and user ID are required',
+    if (!code || !userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        success: false,
+        message: 'Authorization code and user ID are required',
+      });
+    }
+
+    const tokenData = await OAuthService.exchangeInstagramCode(code as string);
+    const profile = await OAuthService.getInstagramProfile(
+      tokenData.access_token
+    );
+
+    // Save to database
+    await SocialMediaService.createAccount({
+      platform: 'instagram',
+      accountName: profile.name || 'Instagram Account',
+      accountId: profile.id,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      tokenExpiry: tokenData.expires_in
+        ? new Date(Date.now() + tokenData.expires_in * 1000)
+        : undefined,
+      isConnected: true,
+      owner: new Types.ObjectId(userId),
     });
+
+    // Redirect to frontend with success
+    res.redirect(`${config.frontend_url}/settings?connected=instagram`);
   }
-
-  const tokenData = await OAuthService.exchangeInstagramCode(code as string);
-  const profile = await OAuthService.getInstagramProfile(tokenData.access_token);
-
-  // Save to database
-  await SocialMediaService.createAccount({
-    platform: 'instagram',
-    accountName: profile.name || 'Instagram Account',
-    accountId: profile.id,
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
-    tokenExpiry: tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000) : undefined,
-    isConnected: true,
-    owner: new Types.ObjectId(userId),
-  });
-
-  // Redirect to frontend with success
-  res.redirect(`${config.frontend_url}/settings?connected=instagram`);
-});
+);
 
 // Twitter OAuth
 const getTwitterAuthUrl = catchAsync(async (req: Request, res: Response) => {
   const authUrl = OAuthService.getTwitterAuthUrl();
-  
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -112,41 +124,47 @@ const getTwitterAuthUrl = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const handleTwitterCallback = catchAsync(async (req: AuthRequest, res: Response) => {
-  const { code } = req.query;
-  const userId = req.user?.userId || req.user?.id;
+const handleTwitterCallback = catchAsync(
+  async (req: AuthRequest, res: Response) => {
+    const { code } = req.query;
+    const userId = req.user?.userId || req.user?.id;
 
-  if (!code || !userId) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.BAD_REQUEST,
-      success: false,
-      message: 'Authorization code and user ID are required',
+    if (!code || !userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        success: false,
+        message: 'Authorization code and user ID are required',
+      });
+    }
+
+    const tokenData = await OAuthService.exchangeTwitterCode(code as string);
+    const profile = await OAuthService.getTwitterProfile(
+      tokenData.access_token
+    );
+
+    // Save to database
+    await SocialMediaService.createAccount({
+      platform: 'twitter',
+      accountName: profile.name || 'Twitter Account',
+      accountId: profile.id,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      tokenExpiry: tokenData.expires_in
+        ? new Date(Date.now() + tokenData.expires_in * 1000)
+        : undefined,
+      isConnected: true,
+      owner: new Types.ObjectId(userId),
     });
+
+    // Redirect to frontend with success
+    res.redirect(`${config.frontend_url}/settings?connected=twitter`);
   }
-
-  const tokenData = await OAuthService.exchangeTwitterCode(code as string);
-  const profile = await OAuthService.getTwitterProfile(tokenData.access_token);
-
-  // Save to database
-  await SocialMediaService.createAccount({
-    platform: 'twitter',
-    accountName: profile.name || 'Twitter Account',
-    accountId: profile.id,
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
-    tokenExpiry: tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000) : undefined,
-    isConnected: true,
-    owner: new Types.ObjectId(userId),
-  });
-
-  // Redirect to frontend with success
-  res.redirect(`${config.frontend_url}/settings?connected=twitter`);
-});
+);
 
 // LinkedIn OAuth
 const getLinkedInAuthUrl = catchAsync(async (req: Request, res: Response) => {
   const authUrl = OAuthService.getLinkedInAuthUrl();
-  
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -155,36 +173,42 @@ const getLinkedInAuthUrl = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const handleLinkedInCallback = catchAsync(async (req: AuthRequest, res: Response) => {
-  const { code } = req.query;
-  const userId = req.user?.userId || req.user?.id;
+const handleLinkedInCallback = catchAsync(
+  async (req: AuthRequest, res: Response) => {
+    const { code } = req.query;
+    const userId = req.user?.userId || req.user?.id;
 
-  if (!code || !userId) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.BAD_REQUEST,
-      success: false,
-      message: 'Authorization code and user ID are required',
+    if (!code || !userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.BAD_REQUEST,
+        success: false,
+        message: 'Authorization code and user ID are required',
+      });
+    }
+
+    const tokenData = await OAuthService.exchangeLinkedInCode(code as string);
+    const profile = await OAuthService.getLinkedInProfile(
+      tokenData.access_token
+    );
+
+    // Save to database
+    await SocialMediaService.createAccount({
+      platform: 'linkedin',
+      accountName: profile.name || 'LinkedIn Account',
+      accountId: profile.id,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      tokenExpiry: tokenData.expires_in
+        ? new Date(Date.now() + tokenData.expires_in * 1000)
+        : undefined,
+      isConnected: true,
+      owner: new Types.ObjectId(userId),
     });
+
+    // Redirect to frontend with success
+    res.redirect(`${config.frontend_url}/settings?connected=linkedin`);
   }
-
-  const tokenData = await OAuthService.exchangeLinkedInCode(code as string);
-  const profile = await OAuthService.getLinkedInProfile(tokenData.access_token);
-
-  // Save to database
-  await SocialMediaService.createAccount({
-    platform: 'linkedin',
-    accountName: profile.name || 'LinkedIn Account',
-    accountId: profile.id,
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
-    tokenExpiry: tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000) : undefined,
-    isConnected: true,
-    owner: new Types.ObjectId(userId),
-  });
-
-  // Redirect to frontend with success
-  res.redirect(`${config.frontend_url}/settings?connected=linkedin`);
-});
+);
 
 export const OAuthController = {
   getFacebookAuthUrl,

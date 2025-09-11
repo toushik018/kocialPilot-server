@@ -224,17 +224,18 @@ const uploadVideoWithCaption = catchAsync(
           ? Array.isArray(req.body.tags)
             ? req.body.tags
             : typeof req.body.tags === 'string' && req.body.tags.startsWith('[')
-            ? JSON.parse(req.body.tags)
-            : typeof req.body.tags === 'string'
-            ? req.body.tags.split(',').map((tag: string) => tag.trim())
-            : [req.body.tags]
+              ? JSON.parse(req.body.tags)
+              : typeof req.body.tags === 'string'
+                ? req.body.tags.split(',').map((tag: string) => tag.trim())
+                : [req.body.tags]
           : [],
         socialMediaPlatforms: req.body.socialMediaPlatforms
           ? Array.isArray(req.body.socialMediaPlatforms)
             ? req.body.socialMediaPlatforms
-            : typeof req.body.socialMediaPlatforms === 'string' && req.body.socialMediaPlatforms.startsWith('[')
-            ? JSON.parse(req.body.socialMediaPlatforms)
-            : [req.body.socialMediaPlatforms]
+            : typeof req.body.socialMediaPlatforms === 'string' &&
+                req.body.socialMediaPlatforms.startsWith('[')
+              ? JSON.parse(req.body.socialMediaPlatforms)
+              : [req.body.socialMediaPlatforms]
           : [],
       };
 
