@@ -37,14 +37,14 @@ const deleteDocument = async (id: string): Promise<IMongoPdf | null> => {
     const urlParts = document.fileUrl.split('/');
     const publicIdWithExtension = urlParts[urlParts.length - 1];
     const publicId = publicIdWithExtension.split('.')[0];
-    
+
     try {
       await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
     } catch (error) {
       console.error('Error deleting from Cloudinary:', error);
     }
   }
-  
+
   const result = await MongoPdf.findByIdAndUpdate(
     id,
     { isDeleted: true },
@@ -54,7 +54,12 @@ const deleteDocument = async (id: string): Promise<IMongoPdf | null> => {
 };
 
 const analyzeDocument = async (
-  file: { buffer: Buffer; originalname: string; size: number; mimetype: string },
+  file: {
+    buffer: Buffer;
+    originalname: string;
+    size: number;
+    mimetype: string;
+  },
   analyzeRequest: IPdfAnalyzeRequest
 ): Promise<IMongoPdf> => {
   try {
@@ -64,20 +69,24 @@ const analyzeDocument = async (
     }
 
     // Upload to Cloudinary
-    const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'raw',
-          folder: 'pdf-documents',
-          public_id: `pdf_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else if (result) resolve(result);
-          else reject(new Error('Upload failed'));
-        }
-      ).end(file.buffer);
-    });
+    const uploadResult = await new Promise<UploadApiResponse>(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              resource_type: 'raw',
+              folder: 'pdf-documents',
+              public_id: `pdf_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else if (result) resolve(result);
+              else reject(new Error('Upload failed'));
+            }
+          )
+          .end(file.buffer);
+      }
+    );
 
     // Extract text from PDF with better error handling
     let pdfData;
@@ -86,7 +95,10 @@ const analyzeDocument = async (
       pdfData = await pdfParse(file.buffer);
       textContent = pdfData.text || '';
     } catch (parseError) {
-      console.warn('PDF parsing failed, continuing with empty text:', parseError);
+      console.warn(
+        'PDF parsing failed, continuing with empty text:',
+        parseError
+      );
       // Continue with empty text content instead of failing completely
       pdfData = { numpages: 0, info: {} };
     }
@@ -112,10 +124,19 @@ const analyzeDocument = async (
       try {
         // PDF date format: D:YYYYMMDDHHmmSSOHH'mm'
         // Example: D:20090401163925-07'00'
-        const match = dateStr.match(/D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
+        const match = dateStr.match(
+          /D:(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/
+        );
         if (match) {
           const [, year, month, day, hour, minute, second] = match;
-          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+          return new Date(
+            parseInt(year),
+            parseInt(month) - 1,
+            parseInt(day),
+            parseInt(hour),
+            parseInt(minute),
+            parseInt(second)
+          );
         }
         // Fallback: try to parse as regular date
         return new Date(dateStr);
@@ -138,7 +159,9 @@ const analyzeDocument = async (
         pageCount: pdfData.numpages,
         author: pdfData.info?.Author,
         subject: pdfData.info?.Subject,
-        keywords: pdfData.info?.Keywords ? pdfData.info.Keywords.split(',') : [],
+        keywords: pdfData.info?.Keywords
+          ? pdfData.info.Keywords.split(',')
+          : [],
         creationDate: parsePdfDate(pdfData.info?.CreationDate),
         modificationDate: parsePdfDate(pdfData.info?.ModDate),
       },
@@ -162,22 +185,22 @@ const processAISummary = async (documentId: string, prompt: string) => {
     // Here you would call your AI service (OpenAI, etc.)
     // For now, using a placeholder
     const summary = `AI-generated summary based on the document content. ${prompt.substring(0, 100)}...`;
-    
+
     await MongoPdf.findByIdAndUpdate(documentId, {
       summary,
       analysisStatus: 'completed',
     });
   } catch {
-     await MongoPdf.findByIdAndUpdate(documentId, {
-       analysisStatus: 'failed',
-     });
-   }
+    await MongoPdf.findByIdAndUpdate(documentId, {
+      analysisStatus: 'failed',
+    });
+  }
 };
 
 const getAllDocumentsByUser = async (userId: string): Promise<IMongoPdf[]> => {
-  const result = await MongoPdf.find({ 
-    owner: userId, 
-    isDeleted: false 
+  const result = await MongoPdf.find({
+    owner: userId,
+    isDeleted: false,
   }).populate('owner', 'name email');
   return result;
 };

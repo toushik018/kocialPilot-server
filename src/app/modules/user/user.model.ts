@@ -36,4 +36,7 @@ const userActivitySchema = new Schema<IUserActivity>(
 userActivitySchema.index({ userId: 1, timestamp: -1 });
 userActivitySchema.index({ action: 1, timestamp: -1 });
 
-export const UserActivity = model<IUserActivity>('UserActivity', userActivitySchema);
+export const UserActivity = model<IUserActivity>(
+  'UserActivity',
+  userActivitySchema
+);

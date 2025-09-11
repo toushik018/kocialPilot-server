@@ -20,7 +20,12 @@ const upload = multer({
   },
 });
 
-router.post('/analyze', auth(), upload.single('pdf'), MongoPdfController.analyzeDocument);
+router.post(
+  '/analyze',
+  auth(),
+  upload.single('pdf'),
+  MongoPdfController.analyzeDocument
+);
 
 router.post('/', MongoPdfController.createDocument);
 

@@ -4,14 +4,22 @@ const createVideoValidation = z.object({
   body: z.object({
     scheduledDate: z.string().optional(),
     description: z.string().optional(),
-    tags: z.union([
-      z.array(z.string()),
-      z.string().transform((str) => str.split(',').map(tag => tag.trim()))
-    ]).optional(),
-    socialMediaPlatforms: z.union([
-      z.array(z.string()),
-      z.string().transform((str) => str.split(',').map(platform => platform.trim()))
-    ]).optional(),
+    tags: z
+      .union([
+        z.array(z.string()),
+        z.string().transform((str) => str.split(',').map((tag) => tag.trim())),
+      ])
+      .optional(),
+    socialMediaPlatforms: z
+      .union([
+        z.array(z.string()),
+        z
+          .string()
+          .transform((str) =>
+            str.split(',').map((platform) => platform.trim())
+          ),
+      ])
+      .optional(),
   }),
 });
 
@@ -20,14 +28,22 @@ const updateVideoValidation = z.object({
     caption: z.string().optional(),
     scheduledDate: z.string().optional(),
     description: z.string().optional(),
-    tags: z.union([
-      z.array(z.string()),
-      z.string().transform((str) => str.split(',').map(tag => tag.trim()))
-    ]).optional(),
-    socialMediaPlatforms: z.union([
-      z.array(z.string()),
-      z.string().transform((str) => str.split(',').map(platform => platform.trim()))
-    ]).optional(),
+    tags: z
+      .union([
+        z.array(z.string()),
+        z.string().transform((str) => str.split(',').map((tag) => tag.trim())),
+      ])
+      .optional(),
+    socialMediaPlatforms: z
+      .union([
+        z.array(z.string()),
+        z
+          .string()
+          .transform((str) =>
+            str.split(',').map((platform) => platform.trim())
+          ),
+      ])
+      .optional(),
     isPublished: z.boolean().optional(),
   }),
 });

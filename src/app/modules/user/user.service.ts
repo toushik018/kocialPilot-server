@@ -4,7 +4,12 @@ import { User } from '../auth/auth.model';
 import { MongoPdf } from '../mongo-pdf/mongo-pdf.model';
 import { Post } from '../mongo-posts/mongo-posts.model';
 import { Video } from '../video/video.model';
-import { IPasswordChange, IUserProfileUpdate, IUserStats, IUserActivity } from './user.interface';
+import {
+  IPasswordChange,
+  IUserProfileUpdate,
+  IUserStats,
+  IUserActivity,
+} from './user.interface';
 import { UserActivity } from './user.model';
 import config from '../../config';
 
@@ -169,7 +174,7 @@ const getUserActivity = async (userId: string, limit = 10) => {
     .sort({ timestamp: -1 })
     .limit(limit)
     .lean();
-  
+
   return activities;
 };
 

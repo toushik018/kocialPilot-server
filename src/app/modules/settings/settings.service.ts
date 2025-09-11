@@ -219,7 +219,8 @@ const deleteUserAccount = async (
   ]);
 
   return {
-    message: 'Account has been successfully deleted. We\'re sorry to see you go!',
+    message:
+      "Account has been successfully deleted. We're sorry to see you go!",
   };
 };
 

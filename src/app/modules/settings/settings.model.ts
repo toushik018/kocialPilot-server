@@ -146,4 +146,7 @@ const UserSettingsSchema = new Schema<IUserSettings>(
 // Index for efficient queries
 UserSettingsSchema.index({ userId: 1 });
 
-export const UserSettings = model<IUserSettings>('UserSettings', UserSettingsSchema);
+export const UserSettings = model<IUserSettings>(
+  'UserSettings',
+  UserSettingsSchema
+);

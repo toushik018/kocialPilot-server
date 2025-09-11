@@ -8,15 +8,39 @@ const router = express.Router();
 // General settings routes
 router.get('/', auth('user', 'admin'), SettingsController.getUserSettings);
 router.patch('/', auth('user', 'admin'), SettingsController.updateUserSettings);
-router.post('/reset', auth('user', 'admin'), SettingsController.resetUserSettings);
+router.post(
+  '/reset',
+  auth('user', 'admin'),
+  SettingsController.resetUserSettings
+);
 
 // Specific settings categories
-router.patch('/notifications', auth('user', 'admin'), SettingsController.updateNotificationSettings);
-router.patch('/privacy', auth('user', 'admin'), SettingsController.updatePrivacySettings);
-router.patch('/security', auth('user', 'admin'), SettingsController.updateSecuritySettings);
+router.patch(
+  '/notifications',
+  auth('user', 'admin'),
+  SettingsController.updateNotificationSettings
+);
+router.patch(
+  '/privacy',
+  auth('user', 'admin'),
+  SettingsController.updatePrivacySettings
+);
+router.patch(
+  '/security',
+  auth('user', 'admin'),
+  SettingsController.updateSecuritySettings
+);
 
 // Account management
-router.post('/export', auth('user', 'admin'), SettingsController.exportUserData);
-router.delete('/account', auth('user', 'admin'), SettingsController.deleteUserAccount);
+router.post(
+  '/export',
+  auth('user', 'admin'),
+  SettingsController.exportUserData
+);
+router.delete(
+  '/account',
+  auth('user', 'admin'),
+  SettingsController.deleteUserAccount
+);
 
 export const SettingsRoutes = router;

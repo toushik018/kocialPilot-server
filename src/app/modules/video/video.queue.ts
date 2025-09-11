@@ -49,7 +49,9 @@ class VideoCaptionQueue {
       }
 
       // Get user context for personalized caption generation
-      const userContext = await AIContextService.getUserContextForAI(job.userId);
+      const userContext = await AIContextService.getUserContextForAI(
+        job.userId
+      );
 
       // Generate AI caption using the AI service with user context
       const captionResult = await AIService.generateVideoCaption(

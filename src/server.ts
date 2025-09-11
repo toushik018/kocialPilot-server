@@ -19,11 +19,11 @@ async function main() {
     });
 
     console.log(`\x1b[32m 📦 MongoDB connected successfully \x1b[0m`);
-    
+
     // Start cleanup scheduler after successful DB connection
     cleanupScheduler.start();
     console.log('🧹 Cleanup scheduler initialized');
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.log('⚠️  MongoDB connection failed:', error.message);
@@ -51,7 +51,7 @@ async function main() {
   const exitHandler = () => {
     // Stop cleanup scheduler
     cleanupScheduler.stop();
-    
+
     if (server) {
       server.close(() => {
         console.log('⚠️  Server closed');

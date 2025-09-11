@@ -22,26 +22,30 @@ const getCleanupStats = catchAsync(async (req: AuthRequest, res: Response) => {
 /**
  * Trigger manual cleanup (admin only)
  */
-const triggerManualCleanup = catchAsync(async (req: AuthRequest, res: Response) => {
-  // Check if user is admin
-  const userRole = req.user?.role;
-  if (userRole !== 'admin') {
-    return sendResponse(res, {
-      statusCode: StatusCodes.FORBIDDEN,
-      success: false,
-      message: 'Only administrators can trigger manual cleanup',
+const triggerManualCleanup = catchAsync(
+  async (req: AuthRequest, res: Response) => {
+    // Check if user is admin
+    const userRole = req.user?.role;
+    if (userRole !== 'admin') {
+      return sendResponse(res, {
+        statusCode: StatusCodes.FORBIDDEN,
+        success: false,
+        message: 'Only administrators can trigger manual cleanup',
+      });
+    }
+
+    const result = await CleanupService.triggerManualCleanup();
+
+    sendResponse(res, {
+      statusCode: result.success
+        ? StatusCodes.OK
+        : StatusCodes.INTERNAL_SERVER_ERROR,
+      success: result.success,
+      message: result.message,
+      data: result.stats,
     });
   }
-
-  const result = await CleanupService.triggerManualCleanup();
-
-  sendResponse(res, {
-    statusCode: result.success ? StatusCodes.OK : StatusCodes.INTERNAL_SERVER_ERROR,
-    success: result.success,
-    message: result.message,
-    data: result.stats,
-  });
-});
+);
 
 /**
  * Run automatic cleanup (internal endpoint)

@@ -28,14 +28,17 @@ class CleanupScheduler {
     }
 
     console.log('Starting cleanup scheduler...');
-    
+
     // Run cleanup immediately on start
     this.runCleanup();
 
     // Schedule cleanup to run every 24 hours
-    this.intervalId = setInterval(() => {
-      this.runCleanup();
-    }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+    this.intervalId = setInterval(
+      () => {
+        this.runCleanup();
+      },
+      24 * 60 * 60 * 1000
+    ); // 24 hours in milliseconds
 
     this.isRunning = true;
     console.log('Cleanup scheduler started successfully');
@@ -63,10 +66,12 @@ class CleanupScheduler {
    * Check if scheduler is running
    */
   getStatus(): { isRunning: boolean; nextRunTime?: Date } {
-    const nextRunTime = this.isRunning ? new Date(Date.now() + 24 * 60 * 60 * 1000) : undefined;
+    const nextRunTime = this.isRunning
+      ? new Date(Date.now() + 24 * 60 * 60 * 1000)
+      : undefined;
     return {
       isRunning: this.isRunning,
-      nextRunTime
+      nextRunTime,
     };
   }
 
@@ -76,20 +81,31 @@ class CleanupScheduler {
   private async runCleanup(): Promise<void> {
     try {
       console.log(`[${new Date().toISOString()}] Running scheduled cleanup...`);
-      
+
       const result = await CleanupService.cleanupOldDeletedPosts();
-      
-      console.log(`[${new Date().toISOString()}] Scheduled cleanup completed:`, result);
-      
+
+      console.log(
+        `[${new Date().toISOString()}] Scheduled cleanup completed:`,
+        result
+      );
+
       // Log summary if any items were deleted
-      const totalDeleted = result.deletedPostsCount + result.deletedVideosCount + result.deletedPdfsCount;
+      const totalDeleted =
+        result.deletedPostsCount +
+        result.deletedVideosCount +
+        result.deletedPdfsCount;
       if (totalDeleted > 0) {
-        console.log(`Cleanup summary: ${totalDeleted} items permanently deleted`);
+        console.log(
+          `Cleanup summary: ${totalDeleted} items permanently deleted`
+        );
       } else {
         console.log('No items were eligible for cleanup');
       }
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] Scheduled cleanup failed:`, error);
+      console.error(
+        `[${new Date().toISOString()}] Scheduled cleanup failed:`,
+        error
+      );
     }
   }
 }

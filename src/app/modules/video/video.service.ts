@@ -57,7 +57,7 @@ const uploadVideo = async (
       file.path,
       thumbnailFullPath
     );
-    
+
     if (generatedThumbnail) {
       // If video is uploaded to Cloudinary, upload thumbnail to Cloudinary too
       if (file.path && file.path.startsWith('http')) {
@@ -72,13 +72,16 @@ const uploadVideo = async (
           );
           thumbnailPath = thumbnailUploadResult.secure_url;
           thumbnailCloudinaryPublicId = thumbnailUploadResult.public_id;
-          
+
           // Delete local thumbnail file after uploading to Cloudinary
           if (fs.existsSync(thumbnailFullPath)) {
             fs.unlinkSync(thumbnailFullPath);
           }
         } catch (cloudinaryError) {
-          console.error('Failed to upload thumbnail to Cloudinary:', cloudinaryError);
+          console.error(
+            'Failed to upload thumbnail to Cloudinary:',
+            cloudinaryError
+          );
           // Fallback to local thumbnail
           thumbnailPath = `/uploads/thumbnails/${thumbnailFilename}`;
         }
@@ -216,10 +219,10 @@ const getVideoById = async (
   id: string,
   userId: string
 ): Promise<IVideoDocument | null> => {
-  const result = await Video.findOne({ 
-    _id: id, 
+  const result = await Video.findOne({
+    _id: id,
     userId,
-    isDeleted: { $ne: true }
+    isDeleted: { $ne: true },
   });
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
@@ -261,14 +264,13 @@ const deleteVideo = async (id: string, userId: string): Promise<void> => {
   if (video.cloudinary_public_id) {
     try {
       await cloudinary.uploader.destroy(video.cloudinary_public_id, {
-        resource_type: 'video'
+        resource_type: 'video',
       });
-      console.log(`✅ Video deleted from Cloudinary: ${video.cloudinary_public_id}`);
-    } catch (cloudinaryError) {
-      console.error(
-        'Failed to delete video from Cloudinary:',
-        cloudinaryError
+      console.log(
+        `✅ Video deleted from Cloudinary: ${video.cloudinary_public_id}`
       );
+    } catch (cloudinaryError) {
+      console.error('Failed to delete video from Cloudinary:', cloudinaryError);
       // Continue execution even if Cloudinary deletion fails
     }
   } else {
@@ -283,10 +285,15 @@ const deleteVideo = async (id: string, userId: string): Promise<void> => {
     if (video.thumbnail_cloudinary_public_id) {
       // Delete thumbnail from Cloudinary
       try {
-        await cloudinary.uploader.destroy(video.thumbnail_cloudinary_public_id, {
-          resource_type: 'image'
-        });
-        console.log(`✅ Thumbnail deleted from Cloudinary: ${video.thumbnail_cloudinary_public_id}`);
+        await cloudinary.uploader.destroy(
+          video.thumbnail_cloudinary_public_id,
+          {
+            resource_type: 'image',
+          }
+        );
+        console.log(
+          `✅ Thumbnail deleted from Cloudinary: ${video.thumbnail_cloudinary_public_id}`
+        );
       } catch (cloudinaryError) {
         console.error(
           'Failed to delete thumbnail from Cloudinary:',
@@ -319,14 +326,13 @@ const hardDeleteVideo = async (id: string, userId: string): Promise<void> => {
   if (video.cloudinary_public_id) {
     try {
       await cloudinary.uploader.destroy(video.cloudinary_public_id, {
-        resource_type: 'video'
+        resource_type: 'video',
       });
-      console.log(`✅ Video deleted from Cloudinary: ${video.cloudinary_public_id}`);
-    } catch (cloudinaryError) {
-      console.error(
-        'Failed to delete video from Cloudinary:',
-        cloudinaryError
+      console.log(
+        `✅ Video deleted from Cloudinary: ${video.cloudinary_public_id}`
       );
+    } catch (cloudinaryError) {
+      console.error('Failed to delete video from Cloudinary:', cloudinaryError);
       // Continue execution even if Cloudinary deletion fails
     }
   } else {
@@ -341,10 +347,15 @@ const hardDeleteVideo = async (id: string, userId: string): Promise<void> => {
     if (video.thumbnail_cloudinary_public_id) {
       // Delete thumbnail from Cloudinary
       try {
-        await cloudinary.uploader.destroy(video.thumbnail_cloudinary_public_id, {
-          resource_type: 'image'
-        });
-        console.log(`✅ Thumbnail deleted from Cloudinary: ${video.thumbnail_cloudinary_public_id}`);
+        await cloudinary.uploader.destroy(
+          video.thumbnail_cloudinary_public_id,
+          {
+            resource_type: 'image',
+          }
+        );
+        console.log(
+          `✅ Thumbnail deleted from Cloudinary: ${video.thumbnail_cloudinary_public_id}`
+        );
       } catch (cloudinaryError) {
         console.error(
           'Failed to delete thumbnail from Cloudinary:',
@@ -549,7 +560,7 @@ const getScheduledVideos = async (
     userId,
     isScheduled: true,
     scheduledDate: { $gte: new Date() },
-    isDeleted: { $ne: true }
+    isDeleted: { $ne: true },
   }).sort({ scheduledDate: 1 });
 
   return result;

@@ -21,34 +21,36 @@ class CleanupService {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      console.log(`Starting cleanup for content deleted before: ${thirtyDaysAgo.toISOString()}`);
+      console.log(
+        `Starting cleanup for content deleted before: ${thirtyDaysAgo.toISOString()}`
+      );
 
       // Permanently delete posts
       const deletedPostsResult = await Post.deleteMany({
         isDeleted: true,
-        deletedAt: { $lt: thirtyDaysAgo }
+        deletedAt: { $lt: thirtyDaysAgo },
       });
 
       // Permanently delete videos
       const deletedVideosResult = await Video.deleteMany({
         isDeleted: true,
-        deletedAt: { $lt: thirtyDaysAgo }
+        deletedAt: { $lt: thirtyDaysAgo },
       });
 
       // Permanently delete PDFs
       const deletedPdfsResult = await MongoPdf.deleteMany({
         isDeleted: true,
-        deletedAt: { $lt: thirtyDaysAgo }
+        deletedAt: { $lt: thirtyDaysAgo },
       });
 
       const result = {
         deletedPostsCount: deletedPostsResult.deletedCount || 0,
         deletedVideosCount: deletedVideosResult.deletedCount || 0,
-        deletedPdfsCount: deletedPdfsResult.deletedCount || 0
+        deletedPdfsCount: deletedPdfsResult.deletedCount || 0,
       };
 
       console.log(`Cleanup completed:`, result);
-      
+
       return result;
     } catch (error) {
       console.error('Error during cleanup:', error);
@@ -75,16 +77,16 @@ class CleanupService {
       const [postsCount, videosCount, pdfsCount] = await Promise.all([
         Post.countDocuments({
           isDeleted: true,
-          deletedAt: { $lt: thirtyDaysAgo }
+          deletedAt: { $lt: thirtyDaysAgo },
         }),
         Video.countDocuments({
           isDeleted: true,
-          deletedAt: { $lt: thirtyDaysAgo }
+          deletedAt: { $lt: thirtyDaysAgo },
         }),
         MongoPdf.countDocuments({
           isDeleted: true,
-          deletedAt: { $lt: thirtyDaysAgo }
-        })
+          deletedAt: { $lt: thirtyDaysAgo },
+        }),
       ]);
 
       // Calculate next cleanup date (tomorrow at midnight)
@@ -96,7 +98,7 @@ class CleanupService {
         postsEligibleForCleanup: postsCount,
         videosEligibleForCleanup: videosCount,
         pdfsEligibleForCleanup: pdfsCount,
-        nextCleanupDate
+        nextCleanupDate,
       };
     } catch (error) {
       console.error('Error getting cleanup stats:', error);
@@ -121,11 +123,11 @@ class CleanupService {
   }> {
     try {
       const stats = await this.cleanupOldDeletedPosts();
-      
+
       return {
         success: true,
         message: 'Manual cleanup completed successfully',
-        stats
+        stats,
       };
     } catch (error) {
       console.error('Manual cleanup failed:', error);
@@ -135,8 +137,8 @@ class CleanupService {
         stats: {
           deletedPostsCount: 0,
           deletedVideosCount: 0,
-          deletedPdfsCount: 0
-        }
+          deletedPdfsCount: 0,
+        },
       };
     }
   }

@@ -391,9 +391,9 @@ const getAllPosts = async (
 
 const getDraftPosts = async (): Promise<IMongoPost[]> => {
   try {
-    const result = await Post.find({ 
+    const result = await Post.find({
       status: 'draft',
-      isDeleted: { $ne: true }
+      isDeleted: { $ne: true },
     });
     return result;
   } catch (error) {
@@ -403,9 +403,9 @@ const getDraftPosts = async (): Promise<IMongoPost[]> => {
 
 const getPostById = async (id: string): Promise<IMongoPost | null> => {
   try {
-    const result = await Post.findOne({ 
+    const result = await Post.findOne({
       _id: id,
-      isDeleted: { $ne: true }
+      isDeleted: { $ne: true },
     });
     return result;
   } catch (error) {
@@ -444,7 +444,10 @@ const deletePost = async (id: string): Promise<IMongoPost | null> => {
         const publicId = publicIdWithExtension.split('.')[0];
         await cloudinary.uploader.destroy(publicId);
       } catch (cloudinaryError) {
-        console.error('Failed to delete image from Cloudinary:', cloudinaryError);
+        console.error(
+          'Failed to delete image from Cloudinary:',
+          cloudinaryError
+        );
         // Continue execution even if Cloudinary deletion fails
       }
     }
@@ -458,7 +461,10 @@ const deletePost = async (id: string): Promise<IMongoPost | null> => {
         const publicId = publicIdWithExtension.split('.')[0];
         await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
       } catch (cloudinaryError) {
-        console.error('Failed to delete video from Cloudinary:', cloudinaryError);
+        console.error(
+          'Failed to delete video from Cloudinary:',
+          cloudinaryError
+        );
         // Continue execution even if Cloudinary deletion fails
       }
     }
@@ -505,7 +511,7 @@ const getCalendarPosts = async (
           createdAt: { $gte: startDate, $lte: endDate },
         },
       ],
-      isDeleted: { $ne: true }
+      isDeleted: { $ne: true },
     });
 
     return result;
@@ -600,7 +606,9 @@ const restorePost = async (id: string): Promise<IMongoPost | null> => {
 };
 
 // Permanently delete a post (hard delete with Cloudinary cleanup)
-const permanentlyDeletePost = async (id: string): Promise<IMongoPost | null> => {
+const permanentlyDeletePost = async (
+  id: string
+): Promise<IMongoPost | null> => {
   try {
     // First get the post to check for Cloudinary assets
     const post = await Post.findById(id);
@@ -617,7 +625,10 @@ const permanentlyDeletePost = async (id: string): Promise<IMongoPost | null> => 
         const publicId = publicIdWithExtension.split('.')[0];
         await cloudinary.uploader.destroy(publicId);
       } catch (cloudinaryError) {
-        console.error('Failed to delete image from Cloudinary:', cloudinaryError);
+        console.error(
+          'Failed to delete image from Cloudinary:',
+          cloudinaryError
+        );
         // Continue execution even if Cloudinary deletion fails
       }
     }
@@ -631,7 +642,10 @@ const permanentlyDeletePost = async (id: string): Promise<IMongoPost | null> => 
         const publicId = publicIdWithExtension.split('.')[0];
         await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
       } catch (cloudinaryError) {
-        console.error('Failed to delete video from Cloudinary:', cloudinaryError);
+        console.error(
+          'Failed to delete video from Cloudinary:',
+          cloudinaryError
+        );
         // Continue execution even if Cloudinary deletion fails
       }
     }
@@ -645,13 +659,15 @@ const permanentlyDeletePost = async (id: string): Promise<IMongoPost | null> => 
 };
 
 // Restore multiple posts
-const restoreMultiplePosts = async (postIds: string[]): Promise<IMongoPost[]> => {
+const restoreMultiplePosts = async (
+  postIds: string[]
+): Promise<IMongoPost[]> => {
   try {
     await Post.updateMany(
       { _id: { $in: postIds }, isDeleted: true },
       { isDeleted: false }
     );
-    
+
     // Return the updated posts
     const updatedPosts = await Post.find({ _id: { $in: postIds } });
     return updatedPosts;
@@ -661,17 +677,19 @@ const restoreMultiplePosts = async (postIds: string[]): Promise<IMongoPost[]> =>
 };
 
 // Permanently delete multiple posts
-const permanentlyDeleteMultiplePosts = async (postIds: string[]): Promise<IMongoPost[]> => {
+const permanentlyDeleteMultiplePosts = async (
+  postIds: string[]
+): Promise<IMongoPost[]> => {
   try {
     const deletedPosts: IMongoPost[] = [];
-    
+
     for (const id of postIds) {
       const post = await permanentlyDeletePost(id);
       if (post) {
         deletedPosts.push(post);
       }
     }
-    
+
     return deletedPosts;
   } catch (error) {
     throw new Error(`Error permanently deleting multiple posts: ${error}`);

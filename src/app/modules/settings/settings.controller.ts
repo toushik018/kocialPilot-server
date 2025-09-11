@@ -31,27 +31,29 @@ const getUserSettings = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const updateUserSettings = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.userId;
-  const updateData: ISettingsUpdateRequest = req.body;
+const updateUserSettings = catchAsync(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.userId;
+    const updateData: ISettingsUpdateRequest = req.body;
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'Authentication required',
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const result = await SettingsService.updateUserSettings(userId, updateData);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Settings updated successfully',
+      data: result,
     });
   }
-
-  const result = await SettingsService.updateUserSettings(userId, updateData);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Settings updated successfully',
-    data: result,
-  });
-});
+);
 
 const updateNotificationSettings = catchAsync(
   async (req: AuthRequest, res: Response) => {
@@ -156,50 +158,54 @@ const exportUserData = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const deleteUserAccount = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.userId;
-  const deletionRequest: IAccountDeletionRequest = req.body;
+const deleteUserAccount = catchAsync(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.userId;
+    const deletionRequest: IAccountDeletionRequest = req.body;
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'Authentication required',
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const result = await SettingsService.deleteUserAccount(
+      userId,
+      deletionRequest
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: result.message,
     });
   }
+);
 
-  const result = await SettingsService.deleteUserAccount(
-    userId,
-    deletionRequest
-  );
+const resetUserSettings = catchAsync(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.userId;
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: result.message,
-  });
-});
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'Authentication required',
+      });
+    }
 
-const resetUserSettings = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.userId;
+    const result = await SettingsService.resetUserSettings(userId);
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'Authentication required',
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Settings reset to defaults successfully',
+      data: result,
     });
   }
-
-  const result = await SettingsService.resetUserSettings(userId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Settings reset to defaults successfully',
-    data: result,
-  });
-});
+);
 
 export const SettingsController = {
   getUserSettings,

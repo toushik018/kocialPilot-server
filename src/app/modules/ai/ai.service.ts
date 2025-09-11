@@ -15,7 +15,10 @@ interface UserContext {
   defaultPlatforms: string[];
 }
 
-const userContextCache = new Map<string, { context: UserContext; timestamp: number }>();
+const userContextCache = new Map<
+  string,
+  { context: UserContext; timestamp: number }
+>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -33,8 +36,8 @@ const generateImageCaption = async (
     let userContext = null;
     const now = Date.now();
     const cached = userContextCache.get(userId);
-    
-    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+
+    if (cached && now - cached.timestamp < CACHE_DURATION) {
       userContext = cached.context;
     } else {
       // In a real implementation, this would fetch from AIContextService
@@ -43,14 +46,16 @@ const generateImageCaption = async (
         userId,
         name: 'User',
         contentStyle: 'engaging',
-        defaultPlatforms: ['instagram', 'twitter']
+        defaultPlatforms: ['instagram', 'twitter'],
       };
       userContextCache.set(userId, { context: userContext, timestamp: now });
     }
 
     // Determine if it's a Cloudinary URL or local path
-     const isCloudinaryUrl = imagePath.includes('cloudinary.com');
-     const imageUrl = isCloudinaryUrl ? imagePath : `http://localhost:8000${imagePath}`;
+    const isCloudinaryUrl = imagePath.includes('cloudinary.com');
+    const imageUrl = isCloudinaryUrl
+      ? imagePath
+      : `http://localhost:8000${imagePath}`;
 
     // Use faster GPT-4o-mini for better performance
     const response = await openai.chat.completions.create({
@@ -73,7 +78,7 @@ const generateImageCaption = async (
               type: 'image_url',
               image_url: {
                 url: imageUrl,
-                detail: 'low' // Use low detail for faster processing
+                detail: 'low', // Use low detail for faster processing
               },
             },
           ],
@@ -96,12 +101,12 @@ const generateImageCaption = async (
         hashtags: result.hashtags || [],
       };
     } catch {
-       // Fallback if JSON parsing fails
-       return {
-         caption: content.substring(0, 200),
-         hashtags: ['#socialmedia', '#content'],
-       };
-     }
+      // Fallback if JSON parsing fails
+      return {
+        caption: content.substring(0, 200),
+        hashtags: ['#socialmedia', '#content'],
+      };
+    }
   } catch (error) {
     console.error('Error generating image caption:', error);
     throw new Error(`Caption generation failed: ${error}`);
@@ -253,42 +258,51 @@ const generateVideoCaption = async (
         }
 
         // Build personalized system prompt based on user context
-        let systemPrompt = 'You are a social media content expert. Analyze this video thumbnail and generate a compelling, engaging caption for the video. The caption should be attention-grabbing, relevant to what you see in the image, and optimized for social media engagement. Also generate 3-5 relevant hashtags based on the visual content.';
-        
+        let systemPrompt =
+          'You are a social media content expert. Analyze this video thumbnail and generate a compelling, engaging caption for the video. The caption should be attention-grabbing, relevant to what you see in the image, and optimized for social media engagement. Also generate 3-5 relevant hashtags based on the visual content.';
+
         if (userContext) {
           if (userContext.name || userContext.firstName) {
             const userName = userContext.name || userContext.firstName;
             systemPrompt += ` The content creator is ${userName}.`;
           }
-          
-          if (userContext.defaultPlatforms && userContext.defaultPlatforms.length > 0) {
+
+          if (
+            userContext.defaultPlatforms &&
+            userContext.defaultPlatforms.length > 0
+          ) {
             systemPrompt += ` This content will primarily be shared on ${userContext.defaultPlatforms.join(', ')}.`;
           }
-          
+
           if (userContext.contentStyle) {
             systemPrompt += ` The user prefers a ${userContext.contentStyle} style of content.`;
           }
-          
+
           if (userContext.userStats) {
             if (userContext.userStats.accountAge < 30) {
-              systemPrompt += ' This is from a newer content creator, so make the caption approachable and engaging for building an audience.';
+              systemPrompt +=
+                ' This is from a newer content creator, so make the caption approachable and engaging for building an audience.';
             } else if (userContext.userStats.totalVideos > 50) {
-              systemPrompt += ' This is from an experienced content creator with a substantial video library.';
+              systemPrompt +=
+                ' This is from an experienced content creator with a substantial video library.';
             }
           }
-          
-          if (userContext.recentCaptions && userContext.recentCaptions.length > 0) {
+
+          if (
+            userContext.recentCaptions &&
+            userContext.recentCaptions.length > 0
+          ) {
             systemPrompt += ` For consistency with their content style, here are some recent captions they've used: ${userContext.recentCaptions.slice(0, 3).join('; ')}.`;
           }
         }
 
         // Build user prompt with context
         let userPrompt = `Generate a compelling social media caption for this video thumbnail. ${videoMetadata.description ? `Additional context: ${videoMetadata.description}` : ''} ${videoMetadata.duration ? `Video duration: ${Math.round(videoMetadata.duration)} seconds.` : ''}`;
-        
+
         if (userContext?.language && userContext.language !== 'en') {
           userPrompt += ` Generate the caption in ${userContext.language} language.`;
         }
-        
+
         userPrompt += ' Include 3-5 relevant hashtags.';
 
         // Use OpenAI Vision API to analyze the thumbnail
@@ -377,30 +391,36 @@ const generateVideoCaption = async (
     const description = videoMetadata?.description;
 
     // Build personalized system prompt for fallback
-    let fallbackSystemPrompt = 'You are a social media content expert. Generate compelling, engaging captions for video content. The caption should be attention-grabbing, create curiosity, and be optimized for social media engagement. Always include 3-5 relevant hashtags.';
-    
+    let fallbackSystemPrompt =
+      'You are a social media content expert. Generate compelling, engaging captions for video content. The caption should be attention-grabbing, create curiosity, and be optimized for social media engagement. Always include 3-5 relevant hashtags.';
+
     if (userContext) {
       if (userContext.name || userContext.firstName) {
         const userName = userContext.name || userContext.firstName;
         fallbackSystemPrompt += ` The content creator is ${userName}.`;
       }
-      
-      if (userContext.defaultPlatforms && userContext.defaultPlatforms.length > 0) {
+
+      if (
+        userContext.defaultPlatforms &&
+        userContext.defaultPlatforms.length > 0
+      ) {
         fallbackSystemPrompt += ` This content will primarily be shared on ${userContext.defaultPlatforms.join(', ')}.`;
       }
-      
+
       if (userContext.contentStyle) {
         fallbackSystemPrompt += ` The user prefers a ${userContext.contentStyle} style of content.`;
       }
-      
+
       if (userContext.userStats) {
         if (userContext.userStats.accountAge < 30) {
-          fallbackSystemPrompt += ' This is from a newer content creator, so make the caption approachable and engaging for building an audience.';
+          fallbackSystemPrompt +=
+            ' This is from a newer content creator, so make the caption approachable and engaging for building an audience.';
         } else if (userContext.userStats.totalVideos > 50) {
-          fallbackSystemPrompt += ' This is from an experienced content creator with a substantial video library.';
+          fallbackSystemPrompt +=
+            ' This is from an experienced content creator with a substantial video library.';
         }
       }
-      
+
       if (userContext.recentCaptions && userContext.recentCaptions.length > 0) {
         fallbackSystemPrompt += ` For consistency with their content style, here are some recent captions they've used: ${userContext.recentCaptions.slice(0, 3).join('; ')}.`;
       }

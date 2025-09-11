@@ -28,10 +28,10 @@ const uploadVideo = catchAsync(async (req: RequestWithFile, res: Response) => {
     file: req.file,
     scheduledDate: req.body.scheduledDate,
     description: req.body.description,
-    tags: req.body.tags 
-      ? typeof req.body.tags === 'string' && !req.body.tags.startsWith('[') 
-        ? req.body.tags.split(',').map((tag: string) => tag.trim()) 
-        : JSON.parse(req.body.tags) 
+    tags: req.body.tags
+      ? typeof req.body.tags === 'string' && !req.body.tags.startsWith('[')
+        ? req.body.tags.split(',').map((tag: string) => tag.trim())
+        : JSON.parse(req.body.tags)
       : [],
     socialMediaPlatforms: req.body.socialMediaPlatforms
       ? JSON.parse(req.body.socialMediaPlatforms)
@@ -220,10 +220,10 @@ const uploadVideoWithCaption = catchAsync(
         file: req.file,
         scheduledDate: req.body.scheduledDate,
         description: req.body.description,
-        tags: req.body.tags 
-          ? typeof req.body.tags === 'string' && !req.body.tags.startsWith('[') 
-            ? req.body.tags.split(',').map((tag: string) => tag.trim()) 
-            : JSON.parse(req.body.tags) 
+        tags: req.body.tags
+          ? typeof req.body.tags === 'string' && !req.body.tags.startsWith('[')
+            ? req.body.tags.split(',').map((tag: string) => tag.trim())
+            : JSON.parse(req.body.tags)
           : [],
         socialMediaPlatforms: req.body.socialMediaPlatforms
           ? JSON.parse(req.body.socialMediaPlatforms)
@@ -240,16 +240,19 @@ const uploadVideoWithCaption = catchAsync(
           String(uploadedVideo._id),
           'pending' as const
         );
-        
+
         // Queue caption generation with delay to allow Cloudinary processing
         setTimeout(async () => {
           try {
             const { AIService } = await import('../ai/ai.service');
-            const { AIContextService } = await import('../ai/ai.context.service');
-            
+            const { AIContextService } = await import(
+              '../ai/ai.context.service'
+            );
+
             // Get user context for personalized caption generation
-            const userContext = await AIContextService.getUserContextForAI(userId);
-            
+            const userContext =
+              await AIContextService.getUserContextForAI(userId);
+
             const captionResult = await AIService.generateVideoCaption(
               uploadedVideo.path,
               {
@@ -260,7 +263,7 @@ const uploadVideoWithCaption = catchAsync(
               },
               userContext
             );
-            
+
             await VideoService.updateCaptionStatus(
               String(uploadedVideo._id),
               'completed' as const,
@@ -279,10 +282,11 @@ const uploadVideoWithCaption = catchAsync(
         try {
           const { AIService } = await import('../ai/ai.service');
           const { AIContextService } = await import('../ai/ai.context.service');
-          
+
           // Get user context for personalized caption generation
-          const userContext = await AIContextService.getUserContextForAI(userId);
-          
+          const userContext =
+            await AIContextService.getUserContextForAI(userId);
+
           const captionResult = await AIService.generateVideoCaption(
             uploadedVideo.path,
             {
@@ -293,7 +297,7 @@ const uploadVideoWithCaption = catchAsync(
             },
             userContext
           );
-          
+
           await VideoService.updateCaptionStatus(
             String(uploadedVideo._id),
             'completed' as const,
@@ -309,12 +313,13 @@ const uploadVideoWithCaption = catchAsync(
       }
 
       // Determine response based on processing type
-      const isCloudinaryUpload = uploadedVideo.path && uploadedVideo.path.startsWith('http');
-      
+      const isCloudinaryUpload =
+        uploadedVideo.path && uploadedVideo.path.startsWith('http');
+
       sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: isCloudinaryUpload 
+        message: isCloudinaryUpload
           ? 'Video uploaded successfully. Caption generation is in progress.'
           : 'Video uploaded with caption successfully',
         data: {
@@ -330,15 +335,18 @@ const uploadVideoWithCaption = catchAsync(
             created_at: uploadedVideo.createdAt,
             caption_status: uploadedVideo.captionStatus,
           },
-          caption: isCloudinaryUpload ? {
-            status: 'pending',
-            message: 'Caption generation will complete in approximately 30 seconds'
-          } : {
-            text: uploadedVideo.caption || '',
-            style,
-            platform,
-            status: 'completed'
-          },
+          caption: isCloudinaryUpload
+            ? {
+                status: 'pending',
+                message:
+                  'Caption generation will complete in approximately 30 seconds',
+              }
+            : {
+                text: uploadedVideo.caption || '',
+                style,
+                platform,
+                status: 'completed',
+              },
         },
       });
     } catch (error) {

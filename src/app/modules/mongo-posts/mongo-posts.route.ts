@@ -53,11 +53,31 @@ router.delete('/drafts', auth(), MongoPostController.deleteMultipleDraftPosts);
 router.delete('/drafts/:id', auth(), MongoPostController.deleteSingleDraftPost);
 
 // Recent delete routes
-router.get('/recent-delete', auth(), MongoPostController.getRecentlyDeletedPosts);
-router.patch('/recent-delete/:id/restore', auth(), MongoPostController.restorePost);
-router.delete('/recent-delete/:id/permanent', auth(), MongoPostController.permanentlyDeletePost);
-router.patch('/recent-delete/restore-multiple', auth(), MongoPostController.restoreMultiplePosts);
-router.delete('/recent-delete/permanent-multiple', auth(), MongoPostController.permanentlyDeleteMultiplePosts);
+router.get(
+  '/recent-delete',
+  auth(),
+  MongoPostController.getRecentlyDeletedPosts
+);
+router.patch(
+  '/recent-delete/:id/restore',
+  auth(),
+  MongoPostController.restorePost
+);
+router.delete(
+  '/recent-delete/:id/permanent',
+  auth(),
+  MongoPostController.permanentlyDeletePost
+);
+router.patch(
+  '/recent-delete/restore-multiple',
+  auth(),
+  MongoPostController.restoreMultiplePosts
+);
+router.delete(
+  '/recent-delete/permanent-multiple',
+  auth(),
+  MongoPostController.permanentlyDeleteMultiplePosts
+);
 
 router.get('/:id', MongoPostController.getPostById);
 

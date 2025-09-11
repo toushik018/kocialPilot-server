@@ -26,7 +26,9 @@ interface UserContextForAI {
  * @param userId The user ID to gather context for
  * @returns User context object for AI personalization
  */
-const getUserContextForAI = async (userId: string): Promise<UserContextForAI> => {
+const getUserContextForAI = async (
+  userId: string
+): Promise<UserContextForAI> => {
   try {
     // Fetch user profile, settings, and stats in parallel
     const [user, userSettings, userStats] = await Promise.all([
@@ -41,32 +43,32 @@ const getUserContextForAI = async (userId: string): Promise<UserContextForAI> =>
 
     // Get recent captions from user's posts and videos for style consistency
     const [recentPosts, recentVideos] = await Promise.all([
-      Post.find({ 
-        user_id: userId, 
+      Post.find({
+        user_id: userId,
         isDeleted: { $ne: true },
-        caption: { $exists: true, $ne: '' }
+        caption: { $exists: true, $ne: '' },
       })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('caption'),
-      Video.find({ 
-        owner: userId, 
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('caption'),
+      Video.find({
+        owner: userId,
         isDeleted: { $ne: true },
-        caption: { $exists: true, $ne: '' }
+        caption: { $exists: true, $ne: '' },
       })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('caption'),
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('caption'),
     ]);
 
     // Extract captions for style analysis
     const recentCaptions: string[] = [];
-    recentPosts.forEach(post => {
+    recentPosts.forEach((post) => {
       if (post.caption && post.caption.trim()) {
         recentCaptions.push(post.caption.trim());
       }
     });
-    recentVideos.forEach(video => {
+    recentVideos.forEach((video) => {
       if (video.caption && video.caption.trim()) {
         recentCaptions.push(video.caption.trim());
       }
@@ -76,14 +78,29 @@ const getUserContextForAI = async (userId: string): Promise<UserContextForAI> =>
     let contentStyle = 'engaging';
     if (recentCaptions.length > 0) {
       const combinedCaptions = recentCaptions.join(' ').toLowerCase();
-      
-      if (combinedCaptions.includes('professional') || combinedCaptions.includes('business')) {
+
+      if (
+        combinedCaptions.includes('professional') ||
+        combinedCaptions.includes('business')
+      ) {
         contentStyle = 'professional';
-      } else if (combinedCaptions.includes('fun') || combinedCaptions.includes('exciting') || combinedCaptions.includes('amazing')) {
+      } else if (
+        combinedCaptions.includes('fun') ||
+        combinedCaptions.includes('exciting') ||
+        combinedCaptions.includes('amazing')
+      ) {
         contentStyle = 'enthusiastic';
-      } else if (combinedCaptions.includes('tips') || combinedCaptions.includes('learn') || combinedCaptions.includes('how to')) {
+      } else if (
+        combinedCaptions.includes('tips') ||
+        combinedCaptions.includes('learn') ||
+        combinedCaptions.includes('how to')
+      ) {
         contentStyle = 'educational';
-      } else if (combinedCaptions.includes('inspire') || combinedCaptions.includes('motivate') || combinedCaptions.includes('believe')) {
+      } else if (
+        combinedCaptions.includes('inspire') ||
+        combinedCaptions.includes('motivate') ||
+        combinedCaptions.includes('believe')
+      ) {
         contentStyle = 'inspirational';
       }
     }
@@ -94,8 +111,14 @@ const getUserContextForAI = async (userId: string): Promise<UserContextForAI> =>
       name: user.name,
       firstName: user.firstName,
       lastName: user.lastName,
-      language: userSettings?.preferences?.language || user.preferences?.language || 'en',
-      timezone: userSettings?.preferences?.timezone || user.preferences?.timezone || 'UTC',
+      language:
+        userSettings?.preferences?.language ||
+        user.preferences?.language ||
+        'en',
+      timezone:
+        userSettings?.preferences?.timezone ||
+        user.preferences?.timezone ||
+        'UTC',
       defaultPlatforms: userSettings?.social?.defaultPlatforms || [],
       recentCaptions: recentCaptions.slice(0, 3), // Limit to 3 most recent
       contentStyle,
@@ -121,22 +144,22 @@ const getUserContextForAI = async (userId: string): Promise<UserContextForAI> =>
 const analyzeUserContentPatterns = async (userId: string) => {
   try {
     const [posts, videos] = await Promise.all([
-      Post.find({ 
-        user_id: userId, 
+      Post.find({
+        user_id: userId,
         isDeleted: { $ne: true },
-        status: 'published'
+        status: 'published',
       })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .select('createdAt hashtags platform'),
-      Video.find({ 
-        owner: userId, 
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .select('createdAt hashtags platform'),
+      Video.find({
+        owner: userId,
         isDeleted: { $ne: true },
-        isScheduled: false // Only published videos
+        isScheduled: false, // Only published videos
       })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .select('createdAt tags socialMediaPlatforms'),
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .select('createdAt tags socialMediaPlatforms'),
     ]);
 
     // Analyze posting patterns
@@ -144,7 +167,7 @@ const analyzeUserContentPatterns = async (userId: string) => {
     const platformUsage: { [platform: string]: number } = {};
     const hashtagFrequency: { [hashtag: string]: number } = {};
 
-    [...posts, ...videos].forEach(content => {
+    [...posts, ...videos].forEach((content) => {
       if (content.createdAt) {
         const hour = content.createdAt.getHours();
         postingHours[hour] = (postingHours[hour] || 0) + 1;
@@ -152,7 +175,8 @@ const analyzeUserContentPatterns = async (userId: string) => {
 
       // Analyze platform usage
       if ('platform' in content && content.platform) {
-        platformUsage[content.platform] = (platformUsage[content.platform] || 0) + 1;
+        platformUsage[content.platform] =
+          (platformUsage[content.platform] || 0) + 1;
       }
       if ('socialMediaPlatforms' in content && content.socialMediaPlatforms) {
         content.socialMediaPlatforms.forEach((platform: string) => {
@@ -164,7 +188,8 @@ const analyzeUserContentPatterns = async (userId: string) => {
       if ('hashtags' in content && content.hashtags) {
         content.hashtags.forEach((hashtag: string) => {
           const cleanHashtag = hashtag.toLowerCase().replace('#', '');
-          hashtagFrequency[cleanHashtag] = (hashtagFrequency[cleanHashtag] || 0) + 1;
+          hashtagFrequency[cleanHashtag] =
+            (hashtagFrequency[cleanHashtag] || 0) + 1;
         });
       }
       if ('tags' in content && content.tags) {

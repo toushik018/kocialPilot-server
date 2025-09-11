@@ -21,9 +21,7 @@ const cloudinaryVideoStorage = new CloudinaryStorage({
     allowed_formats: ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'],
     resource_type: 'video',
     // Use eager transformations with async processing for large videos
-    eager: [
-      { quality: 'auto', format: 'mp4' }
-    ],
+    eager: [{ quality: 'auto', format: 'mp4' }],
     eager_async: true,
     // Increase timeout for large files
     timeout: 120000, // 2 minutes
