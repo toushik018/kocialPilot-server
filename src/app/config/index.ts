@@ -38,6 +38,30 @@ export default {
   meta_app_id: process.env.META_APP_ID,
   meta_app_secret: process.env.META_APP_SECRET,
 
+  // OAuth Configuration
+  oauth: {
+    facebook: {
+      app_id: process.env.FACEBOOK_APP_ID,
+      app_secret: process.env.FACEBOOK_APP_SECRET,
+      redirect_uri: process.env.FACEBOOK_REDIRECT_URI,
+    },
+    instagram: {
+      app_id: process.env.INSTAGRAM_APP_ID,
+      app_secret: process.env.INSTAGRAM_APP_SECRET,
+      redirect_uri: process.env.INSTAGRAM_REDIRECT_URI,
+    },
+    twitter: {
+      client_id: process.env.TWITTER_CLIENT_ID,
+      client_secret: process.env.TWITTER_CLIENT_SECRET,
+      redirect_uri: process.env.TWITTER_REDIRECT_URI,
+    },
+    linkedin: {
+      client_id: process.env.LINKEDIN_CLIENT_ID,
+      client_secret: process.env.LINKEDIN_CLIENT_SECRET,
+      redirect_uri: process.env.LINKEDIN_REDIRECT_URI,
+    },
+  },
+
   // Frontend URL
   frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000',
 };

@@ -29,7 +29,7 @@ router.post(
 
 router.post('/', MongoPdfController.createDocument);
 
-router.get('/documents', MongoPdfController.getAllDocuments);
+router.get('/documents', auth(), MongoPdfController.getAllDocuments);
 
 router.get('/user/:userId', MongoPdfController.getUserDocuments);
 

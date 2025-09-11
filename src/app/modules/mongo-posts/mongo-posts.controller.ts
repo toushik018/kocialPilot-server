@@ -262,11 +262,13 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Posts and videos retrieved successfully',
-    data: paginatedContent,
-    meta: {
-      page: currentPage,
-      limit: currentLimit,
-      total: allContent.length,
+    data: {
+      data: paginatedContent,
+      meta: {
+        page: currentPage,
+        limit: currentLimit,
+        total: allContent.length,
+      },
     },
   });
 });
