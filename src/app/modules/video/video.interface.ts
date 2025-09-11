@@ -24,6 +24,7 @@ export interface IVideo {
   cloudinary_public_id?: string;
   thumbnail_cloudinary_public_id?: string;
   isDeleted?: boolean;
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +51,7 @@ export interface IVideoDocument extends Document {
   cloudinary_public_id?: string;
   thumbnail_cloudinary_public_id?: string;
   isDeleted?: boolean;
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

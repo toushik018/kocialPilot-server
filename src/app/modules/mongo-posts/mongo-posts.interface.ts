@@ -20,6 +20,7 @@ export type IMongoPost = {
   platform?: 'facebook' | 'instagram' | 'twitter' | 'linkedin';
   auto_scheduled?: boolean;
   isDeleted?: boolean;
+  deletedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 };

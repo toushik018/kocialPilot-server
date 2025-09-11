@@ -407,6 +407,54 @@ const getCaptionStatus = catchAsync(
   }
 );
 
+const getRecentlyDeletedVideos = catchAsync(
+  async (req: CustomRequest, res: Response) => {
+    const filters = pick(req.query, videoFilterableFields);
+    const paginationOptions = pick(req.query, paginationFields);
+    const userId = req.user?.userId || '';
+
+    const result = await VideoService.getRecentlyDeletedVideos(
+      { ...filters, userId },
+      paginationOptions
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Recently deleted videos retrieved successfully',
+      data: result,
+    });
+  }
+);
+
+const restoreVideo = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { id } = req.params;
+  const userId = req.user?.userId || '';
+
+  await VideoService.restoreVideo(id, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Video restored successfully',
+    data: null,
+  });
+});
+
+const permanentlyDeleteVideo = catchAsync(async (req: CustomRequest, res: Response) => {
+  const { id } = req.params;
+  const userId = req.user?.userId || '';
+
+  await VideoService.hardDeleteVideo(id, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Video permanently deleted successfully',
+    data: null,
+  });
+});
+
 export const VideoController = {
   uploadVideo,
   getAllVideos,
@@ -420,4 +468,7 @@ export const VideoController = {
   updateCaptionStatus,
   getCaptionStatus,
   uploadVideoWithCaption,
+  getRecentlyDeletedVideos,
+  restoreVideo,
+  permanentlyDeleteVideo,
 };

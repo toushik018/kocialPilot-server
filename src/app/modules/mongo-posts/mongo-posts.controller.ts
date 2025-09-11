@@ -162,8 +162,8 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
   // Get user ID from auth middleware
   const userId = req.user?.userId;
 
-  // Get posts from mongo-posts
-  const result = await MongoPostService.getAllPosts(filters, paginationOptions);
+  // Get posts from mongo-posts with userId filtering
+  const result = await MongoPostService.getAllPosts(filters, paginationOptions, userId);
 
   // Get videos from video service with proper filters
   const videoFilters = {
@@ -371,7 +371,8 @@ const getCalendarPosts = catchAsync(
     const month = parseInt(req.params.month);
 
     // Get both posts and videos for the calendar
-    const posts = await MongoPostService.getCalendarPosts(year, month);
+    const userId = req.user?.userId;
+    const posts = await MongoPostService.getCalendarPosts(year, month, userId);
 
     // Get videos for the same time period
     const startDate = new Date(year, month - 1, 1);
@@ -875,10 +876,12 @@ const getRecentlyDeletedPosts = catchAsync(
       'platform',
     ]);
     const paginationOptions = pick(req.query, paginationFields);
+    const userId = req.user?.userId;
 
     const result = await MongoPostService.getRecentlyDeletedPosts(
       filters,
-      paginationOptions
+      paginationOptions,
+      userId
     );
 
     sendResponse(res, {

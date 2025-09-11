@@ -20,6 +20,7 @@ export type IMongoPdf = {
   };
   analysisStatus: 'pending' | 'processing' | 'completed' | 'failed';
   isDeleted: boolean;
+  deletedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 };

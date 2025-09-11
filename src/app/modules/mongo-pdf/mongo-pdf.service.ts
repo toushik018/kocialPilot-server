@@ -4,14 +4,20 @@ import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import pdfParse from 'pdf-parse';
 import { User } from '../auth/auth.model';
 import { Types } from 'mongoose';
+import { OpenAI } from 'openai';
+import config from '../../config';
 
 const createDocument = async (payload: IMongoPdf): Promise<IMongoPdf> => {
   const result = await MongoPdf.create(payload);
   return result;
 };
 
-const getAllDocuments = async (): Promise<IMongoPdf[]> => {
-  const result = await MongoPdf.find();
+const getAllDocuments = async (userId?: string): Promise<IMongoPdf[]> => {
+  const filter: Record<string, unknown> = { isDeleted: { $ne: true } };
+  if (userId) {
+    filter.owner = userId;
+  }
+  const result = await MongoPdf.find(filter);
   return result;
 };
 
@@ -47,7 +53,7 @@ const deleteDocument = async (id: string): Promise<IMongoPdf | null> => {
 
   const result = await MongoPdf.findByIdAndUpdate(
     id,
-    { isDeleted: true },
+    { isDeleted: true, deletedAt: new Date() },
     { new: true }
   );
   return result;
@@ -180,18 +186,40 @@ const analyzeDocument = async (
   }
 };
 
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: config.openai.apiKey,
+});
+
 const processAISummary = async (documentId: string, prompt: string) => {
   try {
-    // Here you would call your AI service (OpenAI, etc.)
-    // For now, using a placeholder
-    const summary = `AI-generated summary based on the document content. ${prompt.substring(0, 100)}...`;
+    // Call OpenAI API to generate summary
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert document analyzer. Create comprehensive, well-structured summaries of PDF documents. Focus on key points, main themes, and important details. Keep the summary informative yet concise.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      max_tokens: 1000,
+      temperature: 0.3,
+    });
+
+    const summary = response.choices[0]?.message?.content || 'Summary generation failed';
 
     await MongoPdf.findByIdAndUpdate(documentId, {
       summary,
       analysisStatus: 'completed',
     });
-  } catch {
+  } catch (error) {
+    console.error('AI summary generation failed:', error);
     await MongoPdf.findByIdAndUpdate(documentId, {
+      summary: 'AI summary generation failed. Please try again.',
       analysisStatus: 'failed',
     });
   }
@@ -205,6 +233,42 @@ const getAllDocumentsByUser = async (userId: string): Promise<IMongoPdf[]> => {
   return result;
 };
 
+const getRecentlyDeletedDocuments = async (userId: string): Promise<IMongoPdf[]> => {
+  const result = await MongoPdf.find({
+    owner: userId,
+    isDeleted: true,
+  }).populate('owner', 'name email');
+  return result;
+};
+
+const restoreDocument = async (id: string): Promise<IMongoPdf | null> => {
+  const result = await MongoPdf.findByIdAndUpdate(
+    id,
+    { isDeleted: false },
+    { new: true }
+  );
+  return result;
+};
+
+const permanentlyDeleteDocument = async (id: string): Promise<IMongoPdf | null> => {
+  const document = await MongoPdf.findById(id);
+  if (document && document.fileUrl) {
+    // Extract public_id from Cloudinary URL for deletion
+    const urlParts = document.fileUrl.split('/');
+    const publicIdWithExtension = urlParts[urlParts.length - 1];
+    const publicId = publicIdWithExtension.split('.')[0];
+
+    try {
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+    } catch (error) {
+      console.error('Error deleting from Cloudinary:', error);
+    }
+  }
+
+  const result = await MongoPdf.findByIdAndDelete(id);
+  return result;
+};
+
 export const MongoPdfService = {
   createDocument,
   getAllDocuments,
@@ -213,4 +277,7 @@ export const MongoPdfService = {
   deleteDocument,
   analyzeDocument,
   getAllDocumentsByUser,
+  getRecentlyDeletedDocuments,
+  restoreDocument,
+  permanentlyDeleteDocument,
 };

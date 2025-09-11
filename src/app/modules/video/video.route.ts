@@ -35,6 +35,14 @@ router.get(
 // Get scheduled videos
 router.get('/scheduled', auth(), VideoController.getScheduledVideos);
 
+// Get recently deleted videos
+router.get(
+  '/recent-delete',
+  auth(),
+  validateRequest(VideoValidation.getVideosValidation),
+  VideoController.getRecentlyDeletedVideos
+);
+
 // Get video by ID
 router.get(
   '/:id',
@@ -100,6 +108,22 @@ router.get(
   auth(),
   validateRequest(VideoValidation.videoIdValidation),
   VideoController.getCaptionStatus
+);
+
+// Restore video from recent delete
+router.patch(
+  '/recent-delete/:id/restore',
+  auth(),
+  validateRequest(VideoValidation.videoIdValidation),
+  VideoController.restoreVideo
+);
+
+// Permanently delete video from recent delete
+router.delete(
+  '/recent-delete/:id/permanent',
+  auth(),
+  validateRequest(VideoValidation.videoIdValidation),
+  VideoController.permanentlyDeleteVideo
 );
 
 export const VideoRoutes = router;

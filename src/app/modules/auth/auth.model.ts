@@ -70,6 +70,21 @@ const userSchema = new Schema<IUser>(
     profilePicture: {
       type: String,
     },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Bio cannot exceed 500 characters'],
+    },
+    website: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Website URL cannot exceed 200 characters'],
+    },
+    location: {
+      type: String,
+      trim: true,
+      maxlength: [100, 'Location cannot exceed 100 characters'],
+    },
     isEmailVerified: {
       type: Boolean,
       default: false,

@@ -64,6 +64,10 @@ const PostSchema = new Schema<IMongoPost>(
       type: Boolean,
       default: false,
     },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

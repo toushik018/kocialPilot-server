@@ -321,7 +321,8 @@ const createPostWithImage = async (
 
 const getAllPosts = async (
   filters: IMongoPostFilters,
-  paginationOptions: IPaginationOptions
+  paginationOptions: IPaginationOptions,
+  userId?: string
 ): Promise<IGenericResponse<IMongoPost[]>> => {
   try {
     const { searchTerm, status, platform, ...filtersData } = filters;
@@ -329,6 +330,11 @@ const getAllPosts = async (
 
     // Exclude soft-deleted posts by default
     andConditions.push({ isDeleted: { $ne: true } });
+
+    // Add userId filter if provided
+    if (userId) {
+      andConditions.push({ user_id: userId });
+    }
 
     if (searchTerm) {
       andConditions.push({
@@ -469,10 +475,10 @@ const deletePost = async (id: string): Promise<IMongoPost | null> => {
       }
     }
 
-    // Perform soft delete by setting isDeleted to true
+    // Perform soft delete by setting isDeleted to true and deletedAt timestamp
     const result = await Post.findByIdAndUpdate(
       id,
-      { isDeleted: true },
+      { isDeleted: true, deletedAt: new Date() },
       { new: true }
     );
     return result;
@@ -493,14 +499,15 @@ const hardDeletePost = async (id: string): Promise<IMongoPost | null> => {
 
 const getCalendarPosts = async (
   year: number,
-  month: number
+  month: number,
+  userId?: string
 ): Promise<IMongoPost[]> => {
   try {
     // MongoDB aggregation to get posts for a specific month and year
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
-    const result = await Post.find({
+    const conditions: Record<string, unknown> = {
       $or: [
         {
           status: 'scheduled',
@@ -512,7 +519,14 @@ const getCalendarPosts = async (
         },
       ],
       isDeleted: { $ne: true },
-    });
+    };
+
+    // Add userId filter if provided
+    if (userId) {
+      conditions.user_id = userId;
+    }
+
+    const result = await Post.find(conditions);
 
     return result;
   } catch (error) {
@@ -523,7 +537,8 @@ const getCalendarPosts = async (
 // Get recently deleted posts
 const getRecentlyDeletedPosts = async (
   filters: IMongoPostFilters,
-  paginationOptions: IPaginationOptions
+  paginationOptions: IPaginationOptions,
+  userId?: string
 ): Promise<IGenericResponse<IMongoPost[]>> => {
   try {
     const { searchTerm, status, platform, ...filtersData } = filters;
@@ -531,6 +546,11 @@ const getRecentlyDeletedPosts = async (
 
     // Only get soft-deleted posts
     andConditions.push({ isDeleted: true });
+
+    // Add userId filter if provided
+    if (userId) {
+      andConditions.push({ user_id: userId });
+    }
 
     if (searchTerm) {
       andConditions.push({

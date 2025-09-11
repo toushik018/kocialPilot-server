@@ -255,64 +255,19 @@ const updateVideo = async (
 };
 
 const deleteVideo = async (id: string, userId: string): Promise<void> => {
+  console.log(`[DELETE VIDEO] Attempting to delete video with ID: ${id} for user: ${userId}`);
+  
   const video = await Video.findOne({ _id: id, userId });
+  console.log(`[DELETE VIDEO] Video found:`, video ? 'Yes' : 'No');
+  
   if (!video) {
+    console.log(`[DELETE VIDEO] Video not found - ID: ${id}, UserID: ${userId}`);
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
   }
 
-  // Delete from Cloudinary if it's a Cloudinary video
-  if (video.cloudinary_public_id) {
-    try {
-      await cloudinary.uploader.destroy(video.cloudinary_public_id, {
-        resource_type: 'video',
-      });
-      console.log(
-        `✅ Video deleted from Cloudinary: ${video.cloudinary_public_id}`
-      );
-    } catch (cloudinaryError) {
-      console.error('Failed to delete video from Cloudinary:', cloudinaryError);
-      // Continue execution even if Cloudinary deletion fails
-    }
-  } else {
-    // Delete local physical file
-    if (fs.existsSync(video.path)) {
-      fs.unlinkSync(video.path);
-    }
-  }
-
-  // Delete thumbnail if exists
-  if (video.thumbnail) {
-    if (video.thumbnail_cloudinary_public_id) {
-      // Delete thumbnail from Cloudinary
-      try {
-        await cloudinary.uploader.destroy(
-          video.thumbnail_cloudinary_public_id,
-          {
-            resource_type: 'image',
-          }
-        );
-        console.log(
-          `✅ Thumbnail deleted from Cloudinary: ${video.thumbnail_cloudinary_public_id}`
-        );
-      } catch (cloudinaryError) {
-        console.error(
-          'Failed to delete thumbnail from Cloudinary:',
-          cloudinaryError
-        );
-      }
-    } else {
-      // Delete local thumbnail file
-      const thumbnailPath = video.thumbnail.startsWith('/uploads')
-        ? path.join(process.cwd(), video.thumbnail)
-        : video.thumbnail;
-      if (fs.existsSync(thumbnailPath)) {
-        fs.unlinkSync(thumbnailPath);
-      }
-    }
-  }
-
-  // Perform soft delete by setting isDeleted to true
-  await Video.findByIdAndUpdate(id, { isDeleted: true });
+  // Perform soft delete by setting isDeleted to true and deletedAt timestamp
+  const result = await Video.findByIdAndUpdate(id, { isDeleted: true, deletedAt: new Date() });
+  console.log(`[DELETE VIDEO] Video deleted successfully:`, result ? 'Yes' : 'No');
 };
 
 // Add hard delete function for permanent removal
@@ -598,6 +553,87 @@ const queueCaptionGeneration = async (
   });
 };
 
+// Get recently deleted videos
+const getRecentlyDeletedVideos = async (
+  filters: IVideoFilters,
+  paginationOptions: IPaginationOptions
+): Promise<IGenericResponse<IVideoDocument[]>> => {
+  try {
+    const { searchTerm, userId, ...filtersData } = filters;
+    const andConditions = [];
+
+    // Only get soft-deleted videos
+    andConditions.push({ isDeleted: true });
+
+    // Add userId filter
+    if (userId) {
+      andConditions.push({ userId });
+    }
+
+    if (searchTerm) {
+      andConditions.push({
+        $or: videoSearchableFields.map((field) => ({
+          [field]: {
+            $regex: searchTerm,
+            $options: 'i',
+          },
+        })),
+      });
+    }
+
+    if (Object.keys(filtersData).length) {
+      andConditions.push({
+        $and: Object.entries(filtersData).map(([field, value]) => ({
+          [field]: value,
+        })),
+      });
+    }
+
+    const { page, limit, skip, sortBy, sortOrder } =
+      paginationHelpers.calculatePagination(paginationOptions);
+
+    const sortConditions: { [key: string]: SortOrder } = {};
+
+    if (sortBy && sortOrder) {
+      sortConditions[sortBy] = sortOrder;
+    }
+
+    const whereConditions =
+      andConditions.length > 0 ? { $and: andConditions } : {};
+
+    const result = await Video.find(whereConditions)
+      .sort(sortConditions)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Video.countDocuments(whereConditions);
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+      },
+      data: result,
+    };
+  } catch (error) {
+    throw new Error(`Error getting recently deleted videos: ${error}`);
+  }
+};
+
+// Restore video from soft delete
+const restoreVideo = async (id: string, userId: string): Promise<void> => {
+  const video = await Video.findOne({ _id: id, userId, isDeleted: true });
+  if (!video) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Video not found in recently deleted');
+  }
+
+  await Video.findByIdAndUpdate(id, { 
+    isDeleted: false, 
+    deletedAt: null 
+  });
+};
+
 export const VideoService = {
   uploadVideo,
   getAllVideos,
@@ -611,4 +647,6 @@ export const VideoService = {
   getScheduledVideos,
   updateCaptionStatus,
   queueCaptionGeneration,
+  getRecentlyDeletedVideos,
+  restoreVideo,
 };

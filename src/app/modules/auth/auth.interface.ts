@@ -35,6 +35,9 @@ export interface IUser extends IBaseDocument {
   firstName?: string;
   lastName?: string;
   profilePicture?: string;
+  bio?: string;
+  website?: string;
+  location?: string;
   isEmailVerified: boolean;
   isActive: boolean;
   role: 'user' | 'admin';
@@ -80,6 +83,9 @@ export interface IUserUpdateRequest {
   firstName?: string;
   lastName?: string;
   profilePicture?: string;
+  bio?: string;
+  website?: string;
+  location?: string;
   preferences?: {
     timezone?: string;
     language?: string;

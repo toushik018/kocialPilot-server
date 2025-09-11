@@ -51,6 +51,18 @@ const updateProfileValidationSchema = z.object({
       .max(50, 'Last name cannot exceed 50 characters')
       .optional(),
     profilePicture: z.string().url('Invalid profile picture URL').optional(),
+    bio: z
+      .string()
+      .max(500, 'Bio cannot exceed 500 characters')
+      .optional(),
+    website: z
+      .string()
+      .max(200, 'Website URL cannot exceed 200 characters')
+      .optional(),
+    location: z
+      .string()
+      .max(100, 'Location cannot exceed 100 characters')
+      .optional(),
     preferences: z
       .object({
         timezone: z.string().optional(),

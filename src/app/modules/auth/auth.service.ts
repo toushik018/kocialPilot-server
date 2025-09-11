@@ -272,6 +272,9 @@ const updateUserProfile = async (
   if (payload.lastName !== undefined) user.lastName = payload.lastName;
   if (payload.profilePicture !== undefined)
     user.profilePicture = payload.profilePicture;
+  if (payload.bio !== undefined) user.bio = payload.bio;
+  if (payload.website !== undefined) user.website = payload.website;
+  if (payload.location !== undefined) user.location = payload.location;
 
   if (payload.preferences) {
     if (payload.preferences.timezone)
