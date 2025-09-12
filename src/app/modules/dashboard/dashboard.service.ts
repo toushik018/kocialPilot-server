@@ -15,10 +15,19 @@ const getStats = async (): Promise<IDashboardStats> => {
   });
 
   // Get scheduled posts count (excluding deleted)
-  const scheduledPosts = await MongoPost.countDocuments({
+  const scheduledPostsCount = await MongoPost.countDocuments({
     status: 'scheduled',
     isDeleted: { $ne: true },
   });
+
+  // Get scheduled videos count (excluding deleted)
+  const scheduledVideosCount = await Video.countDocuments({
+    isScheduled: true,
+    isDeleted: { $ne: true },
+  });
+
+  // Total scheduled items = scheduled posts + scheduled videos
+  const scheduledPosts = scheduledPostsCount + scheduledVideosCount;
 
   // Get draft posts count (excluding deleted)
   const draftPosts = await MongoPost.countDocuments({
@@ -52,12 +61,12 @@ const getStats = async (): Promise<IDashboardStats> => {
 
   // Get total captions count (posts with captions + videos with captions, excluding deleted)
   const postCaptionsCount = await MongoPost.countDocuments({
-    caption: { $exists: true, $ne: null, $ne: '' },
+    caption: { $exists: true, $nin: [null, ''] },
     isDeleted: { $ne: true },
   });
 
   const videoCaptionsCount = await Video.countDocuments({
-    caption: { $exists: true, $ne: null, $ne: '' },
+    caption: { $exists: true, $nin: [null, ''] },
     isDeleted: { $ne: true },
   });
 
@@ -79,6 +88,33 @@ const getStats = async (): Promise<IDashboardStats> => {
   })
     .sort({ scheduled_date: 1 })
     .lean();
+
+  // Get next scheduled video (excluding deleted)
+  const nextScheduledVideo = await Video.findOne({
+    isScheduled: true,
+    scheduledDate: { $exists: true, $ne: null, $gte: today },
+    isDeleted: { $ne: true },
+  })
+    .sort({ scheduledDate: 1 })
+    .lean();
+
+  // Find the earliest scheduled date between posts and videos
+  let earliestScheduledDate: Date | null = null;
+  if (nextScheduledPost && nextScheduledVideo) {
+    const postDate = nextScheduledPost.scheduled_date ? new Date(nextScheduledPost.scheduled_date) : null;
+    const videoDate = nextScheduledVideo.scheduledDate ? new Date(nextScheduledVideo.scheduledDate) : null;
+    if (postDate && videoDate) {
+      earliestScheduledDate = postDate <= videoDate ? postDate : videoDate;
+    } else if (postDate) {
+      earliestScheduledDate = postDate;
+    } else if (videoDate) {
+      earliestScheduledDate = videoDate;
+    }
+  } else if (nextScheduledPost && nextScheduledPost.scheduled_date) {
+    earliestScheduledDate = new Date(nextScheduledPost.scheduled_date);
+  } else if (nextScheduledVideo && nextScheduledVideo.scheduledDate) {
+    earliestScheduledDate = new Date(nextScheduledVideo.scheduledDate);
+  }
 
   // Get latest generated caption (excluding deleted)
   const latestGeneratedPost = await MongoPost.findOne({
@@ -144,9 +180,9 @@ const getStats = async (): Promise<IDashboardStats> => {
     }))
   );
 
-  // Get formatted dates for next scheduled post and last generated caption
-  const nextScheduledDate = nextScheduledPost?.scheduled_date
-    ? new Date(nextScheduledPost.scheduled_date).toISOString()
+  // Get formatted dates for next scheduled item and last generated caption
+  const nextScheduledDate = earliestScheduledDate
+    ? earliestScheduledDate.toISOString()
     : null;
   const lastGeneratedDate = latestGeneratedPost?.createdAt
     ? new Date(latestGeneratedPost.createdAt).toISOString()
