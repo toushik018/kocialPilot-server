@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { StatusCodes } from 'http-status-codes';
 import config from '../../config';
 import AppError from '../../error/AppError';
-import { StatusCodes } from 'http-status-codes';
 
 interface OAuthTokenResponse {
   access_token: string;
@@ -20,12 +20,20 @@ interface SocialMediaProfile {
 
 class OAuthService {
   // Facebook OAuth
-  static getFacebookAuthUrl(): string {
+  static getFacebookAuthUrl(userId: string): string {
     const { app_id, redirect_uri } = config.oauth.facebook;
-    const scope =
-      'email,public_profile,pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish';
 
-    return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${app_id}&redirect_uri=${encodeURIComponent(redirect_uri!)}&scope=${scope}&response_type=code`;
+    if (!app_id || !redirect_uri) {
+      throw new AppError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Facebook OAuth configuration is missing. Please check your environment variables.'
+      );
+    }
+
+    const scope = 'public_profile'; // Basic permission that works without review
+    const state = `${this.generateState()}:${userId}`;
+
+    return `https://www.facebook.com/v18.0/dialog/oauth?client_id=${app_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&response_type=code&state=${state}`;
   }
 
   static async exchangeFacebookCode(code: string): Promise<OAuthTokenResponse> {
@@ -100,11 +108,20 @@ class OAuthService {
   }
 
   // Instagram OAuth (uses Facebook)
-  static getInstagramAuthUrl(): string {
+  static getInstagramAuthUrl(userId: string): string {
     const { app_id, redirect_uri } = config.oauth.instagram;
-    const scope = 'instagram_basic,instagram_content_publish';
 
-    return `https://api.instagram.com/oauth/authorize?client_id=${app_id}&redirect_uri=${encodeURIComponent(redirect_uri!)}&scope=${scope}&response_type=code`;
+    if (!app_id || !redirect_uri) {
+      throw new AppError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Instagram OAuth configuration is missing. Please check your environment variables.'
+      );
+    }
+
+    const scope = 'instagram_basic';
+    const state = `${this.generateState()}:${userId}`;
+
+    return `https://api.instagram.com/oauth/authorize?client_id=${app_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&response_type=code&state=${state}`;
   }
 
   static async exchangeInstagramCode(
@@ -175,11 +192,20 @@ class OAuthService {
   }
 
   // Twitter OAuth
-  static getTwitterAuthUrl(): string {
+  static getTwitterAuthUrl(userId: string): string {
     const { client_id, redirect_uri } = config.oauth.twitter;
-    const scope = 'tweet.read tweet.write users.read offline.access';
 
-    return `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri!)}&scope=${encodeURIComponent(scope)}&state=state&code_challenge=challenge&code_challenge_method=plain`;
+    if (!client_id || !redirect_uri) {
+      throw new AppError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Twitter OAuth configuration is missing. Please check your environment variables.'
+      );
+    }
+
+    const scope = 'tweet.read users.read offline.access';
+    const state = `${this.generateState()}:${userId}`;
+
+    return `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${encodeURIComponent(scope)}&state=${state}&code_challenge=challenge&code_challenge_method=plain`;
   }
 
   static async exchangeTwitterCode(code: string): Promise<OAuthTokenResponse> {
@@ -250,11 +276,20 @@ class OAuthService {
   }
 
   // LinkedIn OAuth
-  static getLinkedInAuthUrl(): string {
+  static getLinkedInAuthUrl(userId: string): string {
     const { client_id, redirect_uri } = config.oauth.linkedin;
-    const scope = 'r_liteprofile r_emailaddress w_member_social';
 
-    return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri!)}&scope=${encodeURIComponent(scope)}`;
+    if (!client_id || !redirect_uri) {
+      throw new AppError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'LinkedIn OAuth configuration is missing. Please check your environment variables.'
+      );
+    }
+
+    const scope = 'r_liteprofile r_emailaddress';
+    const state = `${this.generateState()}:${userId}`;
+
+    return `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${encodeURIComponent(scope)}&state=${state}`;
   }
 
   static async exchangeLinkedInCode(code: string): Promise<OAuthTokenResponse> {
@@ -297,18 +332,15 @@ class OAuthService {
     accessToken: string
   ): Promise<SocialMediaProfile> {
     try {
-      const response = await axios.get('https://api.linkedin.com/v2/people/~', {
+      const response = await axios.get('https://api.linkedin.com/v2/me', {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       });
 
-      const firstName = response.data.localizedFirstName;
-      const lastName = response.data.localizedLastName;
-
       return {
         id: response.data.id,
-        name: `${firstName} ${lastName}`,
+        name: `${response.data.localizedFirstName} ${response.data.localizedLastName}`,
         platform: 'linkedin',
       };
     } catch (error: unknown) {
@@ -325,6 +357,13 @@ class OAuthService {
       );
     }
   }
+
+  private static generateState(): string {
+    return (
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15)
+    );
+  }
 }
 
-export { OAuthService, SocialMediaProfile, OAuthTokenResponse };
+export { OAuthService, OAuthTokenResponse, SocialMediaProfile };

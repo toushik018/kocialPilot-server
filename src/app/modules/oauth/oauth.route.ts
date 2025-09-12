@@ -1,23 +1,15 @@
 import express from 'express';
-import { OAuthController } from './oauth.controller';
 import auth from '../../middlewares/auth';
+import { OAuthController } from './oauth.controller';
 
 const router = express.Router();
 
 // Facebook OAuth routes
-router.get('/facebook/auth', auth('user'), OAuthController.getFacebookAuthUrl);
-router.get(
-  '/facebook/callback',
-  auth('user'),
-  OAuthController.handleFacebookCallback
-);
+router.get('/facebook/auth', OAuthController.getFacebookAuthUrl);
+router.get('/facebook/callback', OAuthController.handleFacebookCallback);
 
 // Instagram OAuth routes
-router.get(
-  '/instagram/auth',
-  auth('user'),
-  OAuthController.getInstagramAuthUrl
-);
+router.get('/instagram/auth', OAuthController.getInstagramAuthUrl);
 router.get(
   '/instagram/callback',
   auth('user'),
@@ -25,7 +17,7 @@ router.get(
 );
 
 // Twitter OAuth routes
-router.get('/twitter/auth', auth('user'), OAuthController.getTwitterAuthUrl);
+router.get('/twitter/auth', OAuthController.getTwitterAuthUrl);
 router.get(
   '/twitter/callback',
   auth('user'),
@@ -33,7 +25,7 @@ router.get(
 );
 
 // LinkedIn OAuth routes
-router.get('/linkedin/auth', auth('user'), OAuthController.getLinkedInAuthUrl);
+router.get('/linkedin/auth', OAuthController.getLinkedInAuthUrl);
 router.get(
   '/linkedin/callback',
   auth('user'),

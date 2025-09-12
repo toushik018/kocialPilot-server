@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { Types } from 'mongoose';
+import config from '../../config';
 import { catchAsync } from '../../utils/catchAsync';
 import { sendResponse } from '../../utils/sendResponse';
-import { OAuthService } from './oauth.service';
 import { SocialMediaService } from '../social-media/social-media.service';
-import config from '../../config';
+import { OAuthService } from './oauth.service';
 
 interface AuthRequest extends Request {
   user?: {
@@ -15,28 +15,48 @@ interface AuthRequest extends Request {
 }
 
 // Facebook OAuth
-const getFacebookAuthUrl = catchAsync(async (req: Request, res: Response) => {
-  const authUrl = OAuthService.getFacebookAuthUrl();
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Facebook auth URL generated successfully',
-    data: { authUrl },
-  });
-});
-
-const handleFacebookCallback = catchAsync(
+const getFacebookAuthUrl = catchAsync(
   async (req: AuthRequest, res: Response) => {
-    const { code } = req.query;
     const userId = req.user?.userId || req.user?.id;
 
-    if (!code || !userId) {
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        success: false,
+        message: 'User must be logged in to connect social media',
+      });
+    }
+
+    const authUrl = OAuthService.getFacebookAuthUrl(userId);
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Facebook auth URL generated successfully',
+      data: { authUrl },
+    });
+  }
+);
+
+const handleFacebookCallback = catchAsync(
+  async (req: Request, res: Response) => {
+    const { code, state } = req.query;
+
+    if (!code) {
       return sendResponse(res, {
         statusCode: StatusCodes.BAD_REQUEST,
         success: false,
-        message: 'Authorization code and user ID are required',
+        message: 'Authorization code is required',
       });
+    }
+
+    // Extract user ID from state if provided
+    let userId: string | undefined;
+    if (state && typeof state === 'string') {
+      const stateParts = state.split(':');
+      if (stateParts.length > 1) {
+        userId = stateParts[1];
+      }
     }
 
     const tokenData = await OAuthService.exchangeFacebookCode(code as string);
@@ -44,7 +64,15 @@ const handleFacebookCallback = catchAsync(
       tokenData.access_token
     );
 
-    // Save to database
+    if (!userId) {
+      // Redirect to frontend with tokens for manual association
+      res.redirect(
+        `${config.frontend_url}/oauth-callback?platform=facebook&access_token=${tokenData.access_token}&profile=${encodeURIComponent(JSON.stringify(profile))}`
+      );
+      return;
+    }
+
+    // Save to database if we have user ID
     await SocialMediaService.createAccount({
       platform: 'facebook',
       accountName: profile.name || 'Facebook Account',
@@ -64,28 +92,53 @@ const handleFacebookCallback = catchAsync(
 );
 
 // Instagram OAuth
-const getInstagramAuthUrl = catchAsync(async (req: Request, res: Response) => {
-  const authUrl = OAuthService.getInstagramAuthUrl();
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Instagram auth URL generated successfully',
-    data: { authUrl },
-  });
-});
-
-const handleInstagramCallback = catchAsync(
+const getInstagramAuthUrl = catchAsync(
   async (req: AuthRequest, res: Response) => {
-    const { code } = req.query;
     const userId = req.user?.userId || req.user?.id;
 
-    if (!code || !userId) {
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        success: false,
+        message: 'User must be logged in to connect social media',
+      });
+    }
+
+    const authUrl = OAuthService.getInstagramAuthUrl(userId);
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Instagram auth URL generated successfully',
+      data: { authUrl },
+    });
+  }
+);
+
+const handleInstagramCallback = catchAsync(
+  async (req: Request, res: Response) => {
+    const { code, state } = req.query;
+
+    if (!code) {
       return sendResponse(res, {
         statusCode: StatusCodes.BAD_REQUEST,
         success: false,
-        message: 'Authorization code and user ID are required',
+        message: 'Authorization code is required',
       });
+    }
+
+    // Extract user ID from state if provided
+    let userId: string | undefined;
+    if (state && typeof state === 'string') {
+      const stateParts = state.split(':');
+      if (stateParts.length > 1) {
+        userId = stateParts[1];
+      }
+    }
+
+    if (!userId) {
+      res.redirect(`${config.frontend_url}/settings?error=user_not_identified`);
+      return;
     }
 
     const tokenData = await OAuthService.exchangeInstagramCode(code as string);
@@ -113,28 +166,53 @@ const handleInstagramCallback = catchAsync(
 );
 
 // Twitter OAuth
-const getTwitterAuthUrl = catchAsync(async (req: Request, res: Response) => {
-  const authUrl = OAuthService.getTwitterAuthUrl();
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Twitter auth URL generated successfully',
-    data: { authUrl },
-  });
-});
-
-const handleTwitterCallback = catchAsync(
+const getTwitterAuthUrl = catchAsync(
   async (req: AuthRequest, res: Response) => {
-    const { code } = req.query;
     const userId = req.user?.userId || req.user?.id;
 
-    if (!code || !userId) {
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        success: false,
+        message: 'User must be logged in to connect social media',
+      });
+    }
+
+    const authUrl = OAuthService.getTwitterAuthUrl(userId);
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Twitter auth URL generated successfully',
+      data: { authUrl },
+    });
+  }
+);
+
+const handleTwitterCallback = catchAsync(
+  async (req: Request, res: Response) => {
+    const { code, state } = req.query;
+
+    if (!code) {
       return sendResponse(res, {
         statusCode: StatusCodes.BAD_REQUEST,
         success: false,
-        message: 'Authorization code and user ID are required',
+        message: 'Authorization code is required',
       });
+    }
+
+    // Extract user ID from state if provided
+    let userId: string | undefined;
+    if (state && typeof state === 'string') {
+      const stateParts = state.split(':');
+      if (stateParts.length > 1) {
+        userId = stateParts[1];
+      }
+    }
+
+    if (!userId) {
+      res.redirect(`${config.frontend_url}/settings?error=user_not_identified`);
+      return;
     }
 
     const tokenData = await OAuthService.exchangeTwitterCode(code as string);
@@ -162,28 +240,53 @@ const handleTwitterCallback = catchAsync(
 );
 
 // LinkedIn OAuth
-const getLinkedInAuthUrl = catchAsync(async (req: Request, res: Response) => {
-  const authUrl = OAuthService.getLinkedInAuthUrl();
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'LinkedIn auth URL generated successfully',
-    data: { authUrl },
-  });
-});
-
-const handleLinkedInCallback = catchAsync(
+const getLinkedInAuthUrl = catchAsync(
   async (req: AuthRequest, res: Response) => {
-    const { code } = req.query;
     const userId = req.user?.userId || req.user?.id;
 
-    if (!code || !userId) {
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        success: false,
+        message: 'User must be logged in to connect social media',
+      });
+    }
+
+    const authUrl = OAuthService.getLinkedInAuthUrl(userId);
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'LinkedIn auth URL generated successfully',
+      data: { authUrl },
+    });
+  }
+);
+
+const handleLinkedInCallback = catchAsync(
+  async (req: Request, res: Response) => {
+    const { code, state } = req.query;
+
+    if (!code) {
       return sendResponse(res, {
         statusCode: StatusCodes.BAD_REQUEST,
         success: false,
-        message: 'Authorization code and user ID are required',
+        message: 'Authorization code is required',
       });
+    }
+
+    // Extract user ID from state if provided
+    let userId: string | undefined;
+    if (state && typeof state === 'string') {
+      const stateParts = state.split(':');
+      if (stateParts.length > 1) {
+        userId = stateParts[1];
+      }
+    }
+
+    if (!userId) {
+      res.redirect(`${config.frontend_url}/settings?error=user_not_identified`);
+      return;
     }
 
     const tokenData = await OAuthService.exchangeLinkedInCode(code as string);
