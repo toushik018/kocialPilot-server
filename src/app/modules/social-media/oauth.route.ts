@@ -21,7 +21,11 @@ router.get('/linkedin', auth('user', 'admin'), OAuthController.linkedinAuth);
 router.get('/linkedin/callback', OAuthController.linkedinCallback);
 
 // Account management routes
-router.get('/accounts', auth('user', 'admin'), OAuthController.getConnectedAccounts);
+router.get(
+  '/accounts',
+  auth('user', 'admin'),
+  OAuthController.getConnectedAccounts
+);
 router.delete(
   '/accounts/:accountId',
   auth('user', 'admin'),

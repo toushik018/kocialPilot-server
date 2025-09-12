@@ -162,14 +162,14 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
   // Get user ID from auth middleware
   const userId = req.user?.userId;
 
-  // Get posts from mongo-posts with userId filtering
+  // Get ALL posts without pagination (we'll paginate the combined results)
   const result = await MongoPostService.getAllPosts(
     filters,
-    paginationOptions,
+    { page: 1, limit: 10000 }, // Get all posts
     userId
   );
 
-  // Get videos from video service with proper filters
+  // Get ALL videos without pagination
   const videoFilters = {
     searchTerm:
       typeof filters.searchTerm === 'string' ? filters.searchTerm : undefined,
@@ -177,7 +177,7 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
   };
   const videoResult = await VideoService.getAllVideos(videoFilters, {
     page: 1,
-    limit: 1000,
+    limit: 10000, // Get all videos
   });
 
   // Transform posts
