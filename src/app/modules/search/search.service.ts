@@ -7,7 +7,7 @@ import { SearchQuery, SearchResult, SearchResponse } from './search.interface';
 class SearchService {
   async globalSearch(searchQuery: SearchQuery): Promise<SearchResponse> {
     const { query, type = 'all', limit = 10, offset = 0 } = searchQuery;
-    
+
     if (!query || query.trim().length === 0) {
       return {
         results: [],
@@ -22,10 +22,7 @@ class SearchService {
     // Search posts
     if (type === 'all' || type === 'post') {
       const posts = await Post.find({
-        $or: [
-          { caption: searchRegex },
-          { hashtags: { $in: [searchRegex] } },
-        ],
+        $or: [{ caption: searchRegex }, { hashtags: { $in: [searchRegex] } }],
         isDeleted: false,
       })
         .limit(limit)
@@ -78,10 +75,7 @@ class SearchService {
     // Search images
     if (type === 'all' || type === 'image') {
       const images = await Image.find({
-        $or: [
-          { original_filename: searchRegex },
-          { filename: searchRegex },
-        ],
+        $or: [{ original_filename: searchRegex }, { filename: searchRegex }],
       })
         .limit(limit)
         .skip(offset)
@@ -119,7 +113,9 @@ class SearchService {
         results.push({
           id: user._id.toString(),
           type: 'user',
-          title: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
+          title:
+            `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+            'Unknown User',
           description: user.email,
           thumbnail: user.profilePicture,
           url: `/users/${user._id}`,
@@ -131,18 +127,22 @@ class SearchService {
     // Sort results by relevance and date
     results.sort((a, b) => {
       // Simple relevance scoring based on title match
-      const aScore = a.title.toLowerCase().includes(query.toLowerCase()) ? 2 : 1;
-      const bScore = b.title.toLowerCase().includes(query.toLowerCase()) ? 2 : 1;
-      
+      const aScore = a.title.toLowerCase().includes(query.toLowerCase())
+        ? 2
+        : 1;
+      const bScore = b.title.toLowerCase().includes(query.toLowerCase())
+        ? 2
+        : 1;
+
       if (aScore !== bScore) {
         return bScore - aScore;
       }
-      
+
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     const limitedResults = results.slice(0, limit);
-    
+
     return {
       results: limitedResults,
       total: results.length,

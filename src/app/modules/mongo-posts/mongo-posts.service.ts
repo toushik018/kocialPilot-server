@@ -1,4 +1,4 @@
-import { SortOrder } from 'mongoose';
+import { SortOrder, Types } from 'mongoose';
 import { paginationHelpers } from '../../helpers/paginationHelper';
 import { IGenericResponse } from '../../interface/common';
 import { IPaginationOptions } from '../../interface/pagination';
@@ -424,9 +424,15 @@ const updatePost = async (
   payload: Partial<IMongoPost>
 ): Promise<IMongoPost | null> => {
   try {
-    const result = await Post.findOneAndUpdate({ _id: id }, payload, {
-      new: true,
-    });
+    // Convert string ID to ObjectId if needed
+    const objectId = Types.ObjectId.isValid(id) ? new Types.ObjectId(id) : id;
+    
+    const result = await Post.findOneAndUpdate(
+      { _id: objectId, isDeleted: { $ne: true } },
+      payload,
+      { new: true }
+    );
+    
     return result;
   } catch (error) {
     throw new Error(`Error updating post: ${error}`);

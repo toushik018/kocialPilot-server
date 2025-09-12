@@ -24,7 +24,7 @@ router.get(
 );
 
 // Reschedule a post
-router.put('/:id/reschedule', auth(), MongoPostController.reschedulePost);
+router.patch('/:id/reschedule', auth(), MongoPostController.reschedulePost);
 
 // Schedule multiple draft posts
 router.post('/schedule-drafts', auth(), MongoPostController.scheduleDraftPosts);

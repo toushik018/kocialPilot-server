@@ -126,4 +126,13 @@ router.delete(
   VideoController.permanentlyDeleteVideo
 );
 
+// Reschedule video
+router.patch(
+  '/:id/reschedule',
+  auth(),
+  validateRequest(VideoValidation.videoIdValidation),
+  validateRequest(VideoValidation.rescheduleVideoValidation),
+  VideoController.rescheduleVideo
+);
+
 export const VideoRoutes = router;

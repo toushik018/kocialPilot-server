@@ -477,6 +477,56 @@ const permanentlyDeleteVideo = catchAsync(
   }
 );
 
+const rescheduleVideo = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const { scheduled_date, scheduled_time } = req.body;
+    const userId = req.user?.userId || '';
+
+    try {
+      // Validate date and time
+      if (!scheduled_date || !scheduled_time) {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Scheduled date and time are required',
+        });
+      }
+
+      // Create the scheduled date by combining date and time
+      const scheduledDateTime = new Date(`${scheduled_date}T${scheduled_time}`);
+
+      // Update the video with new schedule information
+      const result = await VideoService.updateVideo(id, userId, {
+        scheduledDate: scheduledDateTime,
+      });
+
+      if (!result) {
+        return sendResponse(res, {
+          statusCode: httpStatus.NOT_FOUND,
+          success: false,
+          message: 'Video not found',
+        });
+      }
+
+      sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Video rescheduled successfully',
+        data: result,
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to reschedule video';
+      sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+        message: errorMessage,
+      });
+    }
+  }
+);
+
 export const VideoController = {
   uploadVideo,
   getAllVideos,
@@ -493,4 +543,5 @@ export const VideoController = {
   getRecentlyDeletedVideos,
   restoreVideo,
   permanentlyDeleteVideo,
+  rescheduleVideo,
 };

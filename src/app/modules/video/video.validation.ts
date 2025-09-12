@@ -98,6 +98,17 @@ const scheduleVideoSmartValidation = z.object({
   }),
 });
 
+const rescheduleVideoValidation = z.object({
+  body: z.object({
+    scheduled_date: z.string({
+      required_error: 'Scheduled date is required',
+    }),
+    scheduled_time: z.string({
+      required_error: 'Scheduled time is required',
+    }),
+  }),
+});
+
 export const VideoValidation = {
   createVideoValidation,
   updateVideoValidation,
@@ -106,4 +117,5 @@ export const VideoValidation = {
   scheduleVideoValidation,
   scheduleVideoSmartValidation,
   bulkScheduleValidation,
+  rescheduleVideoValidation,
 };
