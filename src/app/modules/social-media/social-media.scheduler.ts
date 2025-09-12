@@ -3,7 +3,10 @@ import { Post } from '../mongo-posts/mongo-posts.model';
 import { SocialMediaAccount } from './social-media.model';
 import { SocialMediaPostingService } from './social-media-posting.service';
 import { notificationService } from '../notification/notification.service';
-import { NOTIFICATION_TYPES, NOTIFICATION_PRIORITY } from '../notification/notification.constant';
+import {
+  NOTIFICATION_TYPES,
+  NOTIFICATION_PRIORITY,
+} from '../notification/notification.constant';
 import { NotificationPriority } from '../notification/notification.interface';
 
 export class SocialMediaScheduler {
@@ -66,7 +69,11 @@ export class SocialMediaScheduler {
       const connectedAccounts = await SocialMediaAccount.find({
         owner: post.user_id,
         isConnected: true,
-        platform: { $in: post.platform ? [post.platform] : ['facebook', 'instagram', 'twitter', 'linkedin'] },
+        platform: {
+          $in: post.platform
+            ? [post.platform]
+            : ['facebook', 'instagram', 'twitter', 'linkedin'],
+        },
       });
 
       if (connectedAccounts.length === 0) {
@@ -103,16 +110,28 @@ export class SocialMediaScheduler {
           let result;
           switch (account.platform) {
             case 'facebook':
-              result = await SocialMediaPostingService.postToFacebook(account, postContent);
+              result = await SocialMediaPostingService.postToFacebook(
+                account,
+                postContent
+              );
               break;
             case 'instagram':
-              result = await SocialMediaPostingService.postToInstagram(account, postContent);
+              result = await SocialMediaPostingService.postToInstagram(
+                account,
+                postContent
+              );
               break;
             case 'twitter':
-              result = await SocialMediaPostingService.postToTwitter(account, postContent);
+              result = await SocialMediaPostingService.postToTwitter(
+                account,
+                postContent
+              );
               break;
             case 'linkedin':
-              result = await SocialMediaPostingService.postToLinkedIn(account, postContent);
+              result = await SocialMediaPostingService.postToLinkedIn(
+                account,
+                postContent
+              );
               break;
             default:
               result = { success: false, error: 'Unsupported platform' };
@@ -126,10 +145,15 @@ export class SocialMediaScheduler {
 
           if (result.success) {
             successCount++;
-            console.log(`Successfully posted to ${account.platform} (${account.accountName})`);
+            console.log(
+              `Successfully posted to ${account.platform} (${account.accountName})`
+            );
           } else {
             failureCount++;
-            console.error(`Failed to post to ${account.platform} (${account.accountName}):`, result.error);
+            console.error(
+              `Failed to post to ${account.platform} (${account.accountName}):`,
+              result.error
+            );
           }
         } catch (error) {
           failureCount++;
@@ -155,11 +179,16 @@ export class SocialMediaScheduler {
       });
 
       // Send notification to user about posting results
-      await this.sendPostingNotification(post.user_id, post, successCount, failureCount, postResults);
-
+      await this.sendPostingNotification(
+        post.user_id,
+        post,
+        successCount,
+        failureCount,
+        postResults
+      );
     } catch (error) {
       console.error(`Error processing post ${post._id}:`, error);
-      
+
       // Update post status to failed
       await Post.findByIdAndUpdate(post._id, {
         status: 'draft',
@@ -287,31 +316,25 @@ export class SocialMediaScheduler {
             totalPosts: { $sum: 1 },
             successfulPosts: {
               $sum: {
-                $cond: [
-                  { $eq: ['$status', 'published'] },
-                  1,
-                  0,
-                ],
+                $cond: [{ $eq: ['$status', 'published'] }, 1, 0],
               },
             },
             failedPosts: {
               $sum: {
-                $cond: [
-                  { $ne: ['$status', 'published'] },
-                  1,
-                  0,
-                ],
+                $cond: [{ $ne: ['$status', 'published'] }, 1, 0],
               },
             },
           },
         },
       ]);
 
-      return stats[0] || {
-        totalPosts: 0,
-        successfulPosts: 0,
-        failedPosts: 0,
-      };
+      return (
+        stats[0] || {
+          totalPosts: 0,
+          successfulPosts: 0,
+          failedPosts: 0,
+        }
+      );
     } catch (error) {
       console.error('Error getting posting stats:', error);
       return {

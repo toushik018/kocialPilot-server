@@ -118,7 +118,7 @@ class OAuthService {
       );
     }
 
-    const scope = 'instagram_basic';
+    const scope = 'instagram_content_publish,instagram_manage_insights';
     const state = `${this.generateState()}:${userId}`;
 
     return `https://api.instagram.com/oauth/authorize?client_id=${app_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&scope=${scope}&response_type=code&state=${state}`;
