@@ -426,13 +426,13 @@ const updatePost = async (
   try {
     // Convert string ID to ObjectId if needed
     const objectId = Types.ObjectId.isValid(id) ? new Types.ObjectId(id) : id;
-    
+
     const result = await Post.findOneAndUpdate(
       { _id: objectId, isDeleted: { $ne: true } },
       payload,
       { new: true }
     );
-    
+
     return result;
   } catch (error) {
     throw new Error(`Error updating post: ${error}`);
