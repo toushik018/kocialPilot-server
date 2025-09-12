@@ -8,115 +8,127 @@ import pick from '../../utils/pick';
 import { videoFilterableFields } from './video.constant';
 import { paginationFields } from '../../constants/pagination';
 
-const uploadVideo = catchAsync<RequestWithFile>(async (req: RequestWithFile, res: Response) => {
-  if (!req.file) {
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'No video file provided',
+const uploadVideo = catchAsync<RequestWithFile>(
+  async (req: RequestWithFile, res: Response) => {
+    if (!req.file) {
+      return sendResponse(res, {
+        statusCode: httpStatus.BAD_REQUEST,
+        success: false,
+        message: 'No video file provided',
+        data: null,
+      });
+    }
+
+    const videoData = {
+      userId: req.user?.userId || '',
+      file: req.file,
+      scheduledDate: req.body.scheduledDate,
+      description: req.body.description,
+      tags: req.body.tags
+        ? typeof req.body.tags === 'string' && !req.body.tags.startsWith('[')
+          ? req.body.tags.split(',').map((tag: string) => tag.trim())
+          : JSON.parse(req.body.tags)
+        : [],
+      socialMediaPlatforms: req.body.socialMediaPlatforms
+        ? JSON.parse(req.body.socialMediaPlatforms)
+        : [],
+    };
+
+    const result = await VideoService.uploadVideo(videoData);
+
+    sendResponse(res, {
+      statusCode: httpStatus.CREATED,
+      success: true,
+      message: 'Video uploaded successfully',
+      data: result,
+    });
+  }
+);
+
+const getAllVideos = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const filters = pick(req.query, videoFilterableFields);
+    const paginationOptions = pick(req.query, paginationFields);
+
+    // Add userId to filters
+    filters.userId = req.user?.userId || '';
+
+    const result = await VideoService.getAllVideos(filters, paginationOptions);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Videos retrieved successfully',
+      meta: result.meta,
+      data: result.data,
+    });
+  }
+);
+
+const getVideoById = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.userId || '';
+
+    const result = await VideoService.getVideoById(id, userId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Video retrieved successfully',
+      data: result,
+    });
+  }
+);
+
+const updateVideo = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.userId || '';
+
+    const result = await VideoService.updateVideo(id, userId, req.body);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Video updated successfully',
+      data: result,
+    });
+  }
+);
+
+const deleteVideo = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.userId || '';
+
+    await VideoService.deleteVideo(id, userId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Video deleted successfully',
       data: null,
     });
   }
+);
 
-  const videoData = {
-    userId: req.user?.userId || '',
-    file: req.file,
-    scheduledDate: req.body.scheduledDate,
-    description: req.body.description,
-    tags: req.body.tags
-      ? typeof req.body.tags === 'string' && !req.body.tags.startsWith('[')
-        ? req.body.tags.split(',').map((tag: string) => tag.trim())
-        : JSON.parse(req.body.tags)
-      : [],
-    socialMediaPlatforms: req.body.socialMediaPlatforms
-      ? JSON.parse(req.body.socialMediaPlatforms)
-      : [],
-  };
+const scheduleVideo = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.userId || '';
+    const { scheduledDate } = req.body;
 
-  const result = await VideoService.uploadVideo(videoData);
+    const result = await VideoService.scheduleVideo(id, userId, scheduledDate);
 
-  sendResponse(res, {
-    statusCode: httpStatus.CREATED,
-    success: true,
-    message: 'Video uploaded successfully',
-    data: result,
-  });
-});
-
-const getAllVideos = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const filters = pick(req.query, videoFilterableFields);
-  const paginationOptions = pick(req.query, paginationFields);
-
-  // Add userId to filters
-  filters.userId = req.user?.userId || '';
-
-  const result = await VideoService.getAllVideos(filters, paginationOptions);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Videos retrieved successfully',
-    meta: result.meta,
-    data: result.data,
-  });
-});
-
-const getVideoById = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.userId || '';
-
-  const result = await VideoService.getVideoById(id, userId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Video retrieved successfully',
-    data: result,
-  });
-});
-
-const updateVideo = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.userId || '';
-
-  const result = await VideoService.updateVideo(id, userId, req.body);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Video updated successfully',
-    data: result,
-  });
-});
-
-const deleteVideo = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.userId || '';
-
-  await VideoService.deleteVideo(id, userId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Video deleted successfully',
-    data: null,
-  });
-});
-
-const scheduleVideo = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.userId || '';
-  const { scheduledDate } = req.body;
-
-  const result = await VideoService.scheduleVideo(id, userId, scheduledDate);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Video scheduled successfully',
-    data: result,
-  });
-});
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Video scheduled successfully',
+      data: result,
+    });
+  }
+);
 
 const scheduleVideoSmart = catchAsync(
   async (req: CustomRequest, res: Response) => {
@@ -433,19 +445,21 @@ const getRecentlyDeletedVideos = catchAsync(
   }
 );
 
-const restoreVideo = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.userId || '';
+const restoreVideo = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.userId || '';
 
-  await VideoService.restoreVideo(id, userId);
+    await VideoService.restoreVideo(id, userId);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Video restored successfully',
-    data: null,
-  });
-});
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Video restored successfully',
+      data: null,
+    });
+  }
+);
 
 const permanentlyDeleteVideo = catchAsync(
   async (req: CustomRequest, res: Response) => {

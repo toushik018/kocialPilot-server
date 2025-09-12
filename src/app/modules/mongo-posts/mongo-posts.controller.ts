@@ -37,72 +37,74 @@ interface CalendarData {
   total_count: number;
 }
 
-const createPost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  try {
-    console.log('📝 Creating post with data:', req.body);
-    console.log('👤 User info:', {
-      userId: req.user?.userId,
-      email: req.user?.email,
-      username: req.user?.username,
-    });
+const createPost = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    try {
+      console.log('📝 Creating post with data:', req.body);
+      console.log('👤 User info:', {
+        userId: req.user?.userId,
+        email: req.user?.email,
+        username: req.user?.username,
+      });
 
-    const postData = req.body as IMongoPost;
+      const postData = req.body as IMongoPost;
 
-    // Validate image URL format to prevent duplicates from AI upload
-    if (postData.image_url) {
-      // Check if this is an invalid local path format for Cloudinary images
-      if (
-        postData.image_url.startsWith('/uploads/') &&
-        !postData.image_url.includes('/images/')
-      ) {
-        console.log(
-          '🚫 Detected invalid image URL format, likely from AI upload. Skipping duplicate post creation.'
-        );
+      // Validate image URL format to prevent duplicates from AI upload
+      if (postData.image_url) {
+        // Check if this is an invalid local path format for Cloudinary images
+        if (
+          postData.image_url.startsWith('/uploads/') &&
+          !postData.image_url.includes('/images/')
+        ) {
+          console.log(
+            '🚫 Detected invalid image URL format, likely from AI upload. Skipping duplicate post creation.'
+          );
+          return sendResponse(res, {
+            statusCode: httpStatus.CONFLICT,
+            success: false,
+            message: 'Post already created through AI upload process',
+          });
+        }
+      }
+
+      // Get user info from auth middleware
+      const userId = req.user?.userId;
+      const userEmail = req.user?.email;
+      const username = req.user?.username || userEmail?.split('@')[0] || '';
+
+      if (!userId || !userEmail) {
+        console.error('❌ User authentication failed');
         return sendResponse(res, {
-          statusCode: httpStatus.CONFLICT,
+          statusCode: httpStatus.UNAUTHORIZED,
           success: false,
-          message: 'Post already created through AI upload process',
+          message: 'User authentication required',
         });
       }
-    }
 
-    // Get user info from auth middleware
-    const userId = req.user?.userId;
-    const userEmail = req.user?.email;
-    const username = req.user?.username || userEmail?.split('@')[0] || '';
+      // Add user info to post data
+      const postWithUserData = {
+        ...postData,
+        user_id: userId,
+        email: userEmail,
+        username: username,
+      };
 
-    if (!userId || !userEmail) {
-      console.error('❌ User authentication failed');
-      return sendResponse(res, {
-        statusCode: httpStatus.UNAUTHORIZED,
-        success: false,
-        message: 'User authentication required',
+      console.log('🚀 Creating post with final data:', postWithUserData);
+      const result = await MongoPostService.createPost(postWithUserData);
+      console.log('✅ Post created successfully:', result._id);
+
+      sendResponse<IMongoPost>(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Post created successfully',
+        data: result,
       });
+    } catch (error) {
+      console.error('❌ Error in createPost controller:', error);
+      throw error; // Re-throw to be handled by catchAsync
     }
-
-    // Add user info to post data
-    const postWithUserData = {
-      ...postData,
-      user_id: userId,
-      email: userEmail,
-      username: username,
-    };
-
-    console.log('🚀 Creating post with final data:', postWithUserData);
-    const result = await MongoPostService.createPost(postWithUserData);
-    console.log('✅ Post created successfully:', result._id);
-
-    sendResponse<IMongoPost>(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: 'Post created successfully',
-      data: result,
-    });
-  } catch (error) {
-    console.error('❌ Error in createPost controller:', error);
-    throw error; // Re-throw to be handled by catchAsync
   }
-});
+);
 
 const uploadImagePost = catchAsync(
   async (req: RequestWithFile, res: Response) => {
@@ -150,226 +152,236 @@ const uploadImagePost = catchAsync(
   }
 );
 
-const getAllPosts = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const filters = pick(req.query, [
-    'searchTerm',
-    'title',
-    'status',
-    'platform',
-  ]);
-  const paginationOptions = pick(req.query, paginationFields);
+const getAllPosts = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const filters = pick(req.query, [
+      'searchTerm',
+      'title',
+      'status',
+      'platform',
+    ]);
+    const paginationOptions = pick(req.query, paginationFields);
 
-  // Get user ID from auth middleware
-  const userId = req.user?.userId;
+    // Get user ID from auth middleware
+    const userId = req.user?.userId;
 
-  // Get ALL posts without pagination (we'll paginate the combined results)
-  const result = await MongoPostService.getAllPosts(
-    filters,
-    { page: 1, limit: 10000 }, // Get all posts
-    userId
-  );
+    // Get ALL posts without pagination (we'll paginate the combined results)
+    const result = await MongoPostService.getAllPosts(
+      filters,
+      { page: 1, limit: 10000 }, // Get all posts
+      userId
+    );
 
-  // Get ALL videos without pagination
-  const videoFilters = {
-    searchTerm:
-      typeof filters.searchTerm === 'string' ? filters.searchTerm : undefined,
-    userId: userId,
-  };
-  const videoResult = await VideoService.getAllVideos(videoFilters, {
-    page: 1,
-    limit: 10000, // Get all videos
-  });
+    // Get ALL videos without pagination
+    const videoFilters = {
+      searchTerm:
+        typeof filters.searchTerm === 'string' ? filters.searchTerm : undefined,
+      userId: userId,
+    };
+    const videoResult = await VideoService.getAllVideos(videoFilters, {
+      page: 1,
+      limit: 10000, // Get all videos
+    });
 
-  // Transform posts
-  const transformedPosts = result.data.map((post) => ({
-    id: post._id?.toString() || '',
-    user_id: post.user_id,
-    image_url: post.image_url,
-    video_url: undefined,
-    caption: post.caption,
-    hashtags: post.hashtags || [],
-    metadata: post.metadata,
-    scheduled_date: post.scheduled_date
-      ? new Date(post.scheduled_date).toISOString()
-      : '',
-    scheduled_time: post.scheduled_time,
-    status: post.status,
-    auto_scheduled: post.auto_scheduled || false,
-    created_at: post.createdAt
-      ? new Date(post.createdAt).toISOString()
-      : new Date().toISOString(),
-    updated_at: post.updatedAt
-      ? new Date(post.updatedAt).toISOString()
-      : new Date().toISOString(),
-    posted_at: undefined, // Not in the schema
-  }));
+    // Transform posts
+    const transformedPosts = result.data.map((post) => ({
+      id: post._id?.toString() || '',
+      user_id: post.user_id,
+      image_url: post.image_url,
+      video_url: undefined,
+      caption: post.caption,
+      hashtags: post.hashtags || [],
+      metadata: post.metadata,
+      scheduled_date: post.scheduled_date
+        ? new Date(post.scheduled_date).toISOString()
+        : '',
+      scheduled_time: post.scheduled_time,
+      status: post.status,
+      auto_scheduled: post.auto_scheduled || false,
+      created_at: post.createdAt
+        ? new Date(post.createdAt).toISOString()
+        : new Date().toISOString(),
+      updated_at: post.updatedAt
+        ? new Date(post.updatedAt).toISOString()
+        : new Date().toISOString(),
+      posted_at: undefined, // Not in the schema
+    }));
 
-  // Transform videos to match post structure
-  const transformedVideos = videoResult.data.map((video) => ({
-    id: video._id?.toString() || '',
-    user_id: video.userId,
-    image_url: undefined,
-    video_url: video.url,
-    thumbnail: video.thumbnail,
-    content_type: 'video',
-    caption: video.caption || video.description || '',
-    hashtags: video.tags || [],
-    metadata: {
-      filename: video.filename,
-      originalName: video.originalName,
-      mimetype: video.mimetype,
-      size: video.size,
-      captionStatus: video.captionStatus,
-      socialMediaPlatforms: video.socialMediaPlatforms,
-    },
-    scheduled_date: video.scheduledDate
-      ? new Date(video.scheduledDate).toISOString()
-      : '',
-    scheduled_time: video.scheduledDate
-      ? new Date(video.scheduledDate)
-          .toTimeString()
-          .split(' ')[0]
-          .substring(0, 5)
-      : '',
-    status: video.isScheduled ? 'scheduled' : 'draft',
-    auto_scheduled: false,
-    created_at: video.createdAt
-      ? new Date(video.createdAt).toISOString()
-      : new Date().toISOString(),
-    updated_at: video.updatedAt
-      ? new Date(video.updatedAt).toISOString()
-      : new Date().toISOString(),
-    posted_at: undefined,
-  }));
-
-  // Combine posts and videos
-  const allContent = [...transformedPosts, ...transformedVideos];
-
-  // Sort by created_at descending
-  allContent.sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
-
-  // Apply pagination to combined results
-  const currentPage = Number(paginationOptions.page) || 1;
-  const currentLimit = Number(paginationOptions.limit) || 12;
-  const startIndex = (currentPage - 1) * currentLimit;
-  const endIndex = startIndex + currentLimit;
-  const paginatedContent = allContent.slice(startIndex, endIndex);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Posts and videos retrieved successfully',
-    data: {
-      data: paginatedContent,
-      meta: {
-        page: currentPage,
-        limit: currentLimit,
-        total: allContent.length,
+    // Transform videos to match post structure
+    const transformedVideos = videoResult.data.map((video) => ({
+      id: video._id?.toString() || '',
+      user_id: video.userId,
+      image_url: undefined,
+      video_url: video.url,
+      thumbnail: video.thumbnail,
+      content_type: 'video',
+      caption: video.caption || video.description || '',
+      hashtags: video.tags || [],
+      metadata: {
+        filename: video.filename,
+        originalName: video.originalName,
+        mimetype: video.mimetype,
+        size: video.size,
+        captionStatus: video.captionStatus,
+        socialMediaPlatforms: video.socialMediaPlatforms,
       },
-    },
-  });
-});
+      scheduled_date: video.scheduledDate
+        ? new Date(video.scheduledDate).toISOString()
+        : '',
+      scheduled_time: video.scheduledDate
+        ? new Date(video.scheduledDate)
+            .toTimeString()
+            .split(' ')[0]
+            .substring(0, 5)
+        : '',
+      status: video.isScheduled ? 'scheduled' : 'draft',
+      auto_scheduled: false,
+      created_at: video.createdAt
+        ? new Date(video.createdAt).toISOString()
+        : new Date().toISOString(),
+      updated_at: video.updatedAt
+        ? new Date(video.updatedAt).toISOString()
+        : new Date().toISOString(),
+      posted_at: undefined,
+    }));
 
-const getDraftPosts = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const result = await MongoPostService.getDraftPosts();
+    // Combine posts and videos
+    const allContent = [...transformedPosts, ...transformedVideos];
 
-  // Transform the response to match frontend expectations
-  const transformedPosts = result.map((post) => ({
-    id: post._id?.toString() || '',
-    user_id: post.user_id,
-    image_url: post.image_url,
-    caption: post.caption,
-    hashtags: post.hashtags || [],
-    alt_text: post.alt_text,
-    metadata: post.metadata,
-    scheduled_date: post.scheduled_date
-      ? new Date(post.scheduled_date).toISOString()
-      : undefined,
-    scheduled_time: post.scheduled_time,
-    status: post.status,
-    auto_scheduled: post.auto_scheduled || false,
-    created_at: post.createdAt
-      ? new Date(post.createdAt).toISOString()
-      : new Date().toISOString(),
-    updated_at: post.updatedAt
-      ? new Date(post.updatedAt).toISOString()
-      : new Date().toISOString(),
-    posted_at: undefined, // Not in the schema
-  }));
+    // Sort by created_at descending
+    allContent.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Draft posts retrieved successfully',
-    data: transformedPosts,
-  });
-});
+    // Apply pagination to combined results
+    const currentPage = Number(paginationOptions.page) || 1;
+    const currentLimit = Number(paginationOptions.limit) || 12;
+    const startIndex = (currentPage - 1) * currentLimit;
+    const endIndex = startIndex + currentLimit;
+    const paginatedContent = allContent.slice(startIndex, endIndex);
 
-const getPostById = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const id = req.params.id;
-  const result = await MongoPostService.getPostById(id);
-
-  if (!result) {
-    return sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'Post not found',
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Posts and videos retrieved successfully',
+      data: {
+        data: paginatedContent,
+        meta: {
+          page: currentPage,
+          limit: currentLimit,
+          total: allContent.length,
+        },
+      },
     });
   }
+);
 
-  sendResponse<IMongoPost>(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Post retrieved successfully',
-    data: result,
-  });
-});
+const getDraftPosts = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const result = await MongoPostService.getDraftPosts();
 
-const updatePost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const id = req.params.id;
-  const updatedData = req.body as Partial<IMongoPost>;
+    // Transform the response to match frontend expectations
+    const transformedPosts = result.map((post) => ({
+      id: post._id?.toString() || '',
+      user_id: post.user_id,
+      image_url: post.image_url,
+      caption: post.caption,
+      hashtags: post.hashtags || [],
+      alt_text: post.alt_text,
+      metadata: post.metadata,
+      scheduled_date: post.scheduled_date
+        ? new Date(post.scheduled_date).toISOString()
+        : undefined,
+      scheduled_time: post.scheduled_time,
+      status: post.status,
+      auto_scheduled: post.auto_scheduled || false,
+      created_at: post.createdAt
+        ? new Date(post.createdAt).toISOString()
+        : new Date().toISOString(),
+      updated_at: post.updatedAt
+        ? new Date(post.updatedAt).toISOString()
+        : new Date().toISOString(),
+      posted_at: undefined, // Not in the schema
+    }));
 
-  const result = await MongoPostService.updatePost(id, updatedData);
-
-  if (!result) {
-    return sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'Post not found',
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Draft posts retrieved successfully',
+      data: transformedPosts,
     });
   }
+);
 
-  sendResponse<IMongoPost>(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Post updated successfully',
-    data: result,
-  });
-});
+const getPostById = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const id = req.params.id;
+    const result = await MongoPostService.getPostById(id);
 
-const deletePost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const id = req.params.id;
+    if (!result) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Post not found',
+      });
+    }
 
-  const result = await MongoPostService.deletePost(id);
-
-  if (!result) {
-    return sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'Post not found',
+    sendResponse<IMongoPost>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Post retrieved successfully',
+      data: result,
     });
   }
+);
 
-  sendResponse<IMongoPost>(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Post deleted successfully',
-    data: result,
-  });
-});
+const updatePost = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const id = req.params.id;
+    const updatedData = req.body as Partial<IMongoPost>;
+
+    const result = await MongoPostService.updatePost(id, updatedData);
+
+    if (!result) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    sendResponse<IMongoPost>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Post updated successfully',
+      data: result,
+    });
+  }
+);
+
+const deletePost = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const id = req.params.id;
+
+    const result = await MongoPostService.deletePost(id);
+
+    if (!result) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    sendResponse<IMongoPost>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Post deleted successfully',
+      data: result,
+    });
+  }
+);
 
 const getCalendarPosts = catchAsync(
   async (req: CustomRequest, res: Response) => {
@@ -505,53 +517,55 @@ const getCalendarPosts = catchAsync(
   }
 );
 
-const getPostsByDate = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const date = req.params.date;
+const getPostsByDate = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const date = req.params.date;
 
-  // Create start and end of day dates
-  const startDate = new Date(date);
-  startDate.setHours(0, 0, 0, 0);
+    // Create start and end of day dates
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
 
-  const endDate = new Date(date);
-  endDate.setHours(23, 59, 59, 999);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
 
-  // Find posts for the specific date
-  const result = await Post.find({
-    $or: [
-      {
-        status: 'scheduled',
-        scheduled_date: { $gte: startDate, $lte: endDate },
+    // Find posts for the specific date
+    const result = await Post.find({
+      $or: [
+        {
+          status: 'scheduled',
+          scheduled_date: { $gte: startDate, $lte: endDate },
+        },
+        {
+          status: 'published',
+          createdAt: { $gte: startDate, $lte: endDate },
+        },
+      ],
+    });
+
+    // Transform the response to match frontend expectations
+    const posts = result.map((post) => ({
+      _id: post._id?.toString() || '',
+      image_url: post.image_url,
+      caption: post.caption,
+      scheduled_date: post.scheduled_date
+        ? new Date(post.scheduled_date).toISOString()
+        : '',
+      scheduled_time: post.scheduled_time,
+      hashtags: post.hashtags || [],
+      status: post.status,
+      title: post.caption.substring(0, 50), // Use first 50 chars of caption as title
+    }));
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Posts retrieved successfully',
+      data: {
+        posts: posts,
       },
-      {
-        status: 'published',
-        createdAt: { $gte: startDate, $lte: endDate },
-      },
-    ],
-  });
-
-  // Transform the response to match frontend expectations
-  const posts = result.map((post) => ({
-    _id: post._id?.toString() || '',
-    image_url: post.image_url,
-    caption: post.caption,
-    scheduled_date: post.scheduled_date
-      ? new Date(post.scheduled_date).toISOString()
-      : '',
-    scheduled_time: post.scheduled_time,
-    hashtags: post.hashtags || [],
-    status: post.status,
-    title: post.caption.substring(0, 50), // Use first 50 chars of caption as title
-  }));
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Posts retrieved successfully',
-    data: {
-      posts: posts,
-    },
-  });
-});
+    });
+  }
+);
 
 const getOptimalScheduleTime = catchAsync(
   async (req: CustomRequest, res: Response) => {
@@ -623,51 +637,53 @@ const getOptimalScheduleTime = catchAsync(
 );
 
 // Add the missing controller methods
-const reschedulePost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const { id } = req.params;
-  const { scheduled_date, scheduled_time } = req.body;
+const reschedulePost = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const { id } = req.params;
+    const { scheduled_date, scheduled_time } = req.body;
 
-  try {
-    // Validate date and time
-    if (!scheduled_date || !scheduled_time) {
-      return sendResponse(res, {
-        statusCode: httpStatus.BAD_REQUEST,
+    try {
+      // Validate date and time
+      if (!scheduled_date || !scheduled_time) {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Scheduled date and time are required',
+        });
+      }
+
+      // Update the post with new schedule information
+      const result = await MongoPostService.updatePost(id, {
+        scheduled_date: new Date(scheduled_date),
+        scheduled_time,
+        status: 'scheduled',
+      });
+
+      if (!result) {
+        return sendResponse(res, {
+          statusCode: httpStatus.NOT_FOUND,
+          success: false,
+          message: 'Post not found',
+        });
+      }
+
+      sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Post rescheduled successfully',
+        data: result,
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to reschedule post';
+      sendResponse(res, {
+        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
         success: false,
-        message: 'Scheduled date and time are required',
+        message: errorMessage,
       });
     }
-
-    // Update the post with new schedule information
-    const result = await MongoPostService.updatePost(id, {
-      scheduled_date: new Date(scheduled_date),
-      scheduled_time,
-      status: 'scheduled',
-    });
-
-    if (!result) {
-      return sendResponse(res, {
-        statusCode: httpStatus.NOT_FOUND,
-        success: false,
-        message: 'Post not found',
-      });
-    }
-
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: 'Post rescheduled successfully',
-      data: result,
-    });
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Failed to reschedule post';
-    sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: errorMessage,
-    });
   }
-});
+);
 
 const scheduleDraftPosts = catchAsync(
   async (req: CustomRequest, res: Response) => {
@@ -900,26 +916,28 @@ const getRecentlyDeletedPosts = catchAsync(
 );
 
 // Restore a deleted post
-const restorePost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
-  const id = req.params.id;
+const restorePost = catchAsync<CustomRequest>(
+  async (req: CustomRequest, res: Response) => {
+    const id = req.params.id;
 
-  const result = await MongoPostService.restorePost(id);
+    const result = await MongoPostService.restorePost(id);
 
-  if (!result) {
-    return sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'Post not found',
+    if (!result) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    sendResponse<IMongoPost>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Post restored successfully',
+      data: result,
     });
   }
-
-  sendResponse<IMongoPost>(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Post restored successfully',
-    data: result,
-  });
-});
+);
 
 // Permanently delete a post
 const permanentlyDeletePost = catchAsync(

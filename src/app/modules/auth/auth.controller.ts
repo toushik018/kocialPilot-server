@@ -123,72 +123,82 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const verifyToken = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  // If we reach here, the token is valid (auth middleware passed)
-  const user = req.user!;
+const verifyToken = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    // If we reach here, the token is valid (auth middleware passed)
+    const user = req.user!;
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    message: 'Token is valid',
-    statusCode: StatusCodes.OK,
-    data: {
-      user: {
-        userId: user.userId,
-        email: user.email,
-        role: user.role,
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Token is valid',
+      statusCode: StatusCodes.OK,
+      data: {
+        user: {
+          userId: user.userId,
+          email: user.email,
+          role: user.role,
+        },
+        expiresAt: user.exp ? new Date(user.exp * 1000).toISOString() : null,
       },
-      expiresAt: user.exp ? new Date(user.exp * 1000).toISOString() : null,
-    },
-  });
-});
+    });
+  }
+);
 
-const getProfile = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const userId = req.user!.userId;
-  const result = await AuthService.getUserProfile(userId);
+const getProfile = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
+    const result = await AuthService.getUserProfile(userId);
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    message: 'Profile retrieved successfully',
-    statusCode: StatusCodes.OK,
-    data: result,
-  });
-});
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Profile retrieved successfully',
+      statusCode: StatusCodes.OK,
+      data: result,
+    });
+  }
+);
 
-const updateProfile = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const userId = req.user!.userId;
-  const result = await AuthService.updateUserProfile(userId, req.body);
+const updateProfile = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
+    const result = await AuthService.updateUserProfile(userId, req.body);
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    message: AUTH_MESSAGES.PROFILE_UPDATE_SUCCESS,
-    statusCode: StatusCodes.OK,
-    data: result,
-  });
-});
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: AUTH_MESSAGES.PROFILE_UPDATE_SUCCESS,
+      statusCode: StatusCodes.OK,
+      data: result,
+    });
+  }
+);
 
-const changePassword = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const userId = req.user!.userId;
-  await AuthService.changePassword(userId, req.body);
+const changePassword = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
+    await AuthService.changePassword(userId, req.body);
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    message: AUTH_MESSAGES.PASSWORD_CHANGE_SUCCESS,
-    statusCode: StatusCodes.OK,
-    data: null,
-  });
-});
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: AUTH_MESSAGES.PASSWORD_CHANGE_SUCCESS,
+      statusCode: StatusCodes.OK,
+      data: null,
+    });
+  }
+);
 
-const addSocialAccount = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const userId = req.user!.userId;
-  const result = await AuthService.addSocialAccount(userId, req.body);
+const addSocialAccount = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
+    const result = await AuthService.addSocialAccount(userId, req.body);
 
-  res.status(StatusCodes.OK).json({
-    success: true,
-    message: AUTH_MESSAGES.SOCIAL_ACCOUNT_ADDED,
-    statusCode: StatusCodes.OK,
-    data: result,
-  });
-});
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: AUTH_MESSAGES.SOCIAL_ACCOUNT_ADDED,
+      statusCode: StatusCodes.OK,
+      data: result,
+    });
+  }
+);
 
 const removeSocialAccount = catchAsync(
   async (req: AuthRequest, res: Response) => {

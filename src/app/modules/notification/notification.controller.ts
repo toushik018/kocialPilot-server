@@ -42,39 +42,41 @@ const createNotification = catchAsync(
 );
 
 // Get notifications for the authenticated user
-const getNotifications = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id || req.user?.userId;
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.UNAUTHORIZED,
-      success: false,
-      message: 'Authentication required',
+const getNotifications = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const query =
+      NotificationValidation.getNotificationsValidationSchema.parse(req).query;
+    const serviceQuery = {
+      ...query,
+      type: query.type as NotificationType | undefined,
+      status: query.status as NotificationStatus | undefined,
+      priority: query.priority as NotificationPriority | undefined,
+      page: query.page ? parseInt(query.page) : undefined,
+      limit: query.limit ? parseInt(query.limit) : undefined,
+    };
+    const result = await notificationService.getNotifications(
+      userId,
+      serviceQuery
+    );
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Notifications retrieved successfully',
+      data: result.data,
+      meta: result.pagination,
     });
   }
-
-  const query =
-    NotificationValidation.getNotificationsValidationSchema.parse(req).query;
-  const serviceQuery = {
-    ...query,
-    type: query.type as NotificationType | undefined,
-    status: query.status as NotificationStatus | undefined,
-    priority: query.priority as NotificationPriority | undefined,
-    page: query.page ? parseInt(query.page) : undefined,
-    limit: query.limit ? parseInt(query.limit) : undefined,
-  };
-  const result = await notificationService.getNotifications(
-    userId,
-    serviceQuery
-  );
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Notifications retrieved successfully',
-    data: result.data,
-    meta: result.pagination,
-  });
-});
+);
 
 // Get a single notification by ID
 const getNotificationById = catchAsync(
@@ -136,46 +138,50 @@ const updateNotification = catchAsync(
 );
 
 // Mark a notification as read
-const markAsRead = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
-  const userId = req.user?.id || req.user?.userId;
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.UNAUTHORIZED,
-      success: false,
-      message: 'Authentication required',
+const markAsRead = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const result = await notificationService.markAsRead(id, userId);
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Notification marked as read',
+      data: result.data,
     });
   }
-
-  const result = await notificationService.markAsRead(id, userId);
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Notification marked as read',
-    data: result.data,
-  });
-});
+);
 
 // Mark all notifications as read
-const markAllAsRead = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id || req.user?.userId;
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.UNAUTHORIZED,
-      success: false,
-      message: 'Authentication required',
+const markAllAsRead = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const result = await notificationService.markAllAsRead(userId);
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: result.message,
     });
   }
-
-  const result = await notificationService.markAllAsRead(userId);
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: result.message,
-  });
-});
+);
 
 // Delete a notification
 const deleteNotification = catchAsync(
@@ -252,25 +258,27 @@ const getNotificationStats = catchAsync(
 );
 
 // Get unread notification count
-const getUnreadCount = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id || req.user?.userId;
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.UNAUTHORIZED,
-      success: false,
-      message: 'Authentication required',
+const getUnreadCount = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.UNAUTHORIZED,
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const stats = await notificationService.getNotificationStats(userId);
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Unread count retrieved successfully',
+      data: { count: stats.unread },
     });
   }
-
-  const stats = await notificationService.getNotificationStats(userId);
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Unread count retrieved successfully',
-    data: { count: stats.unread },
-  });
-});
+);
 
 export const notificationController = {
   createNotification,

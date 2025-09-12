@@ -8,16 +8,18 @@ import { AuthRequest } from '../auth/auth.interface';
 /**
  * Get cleanup statistics
  */
-const getCleanupStats = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const result = await CleanupService.getCleanupStats();
+const getCleanupStats = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const result = await CleanupService.getCleanupStats();
 
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Cleanup statistics retrieved successfully',
-    data: result,
-  });
-});
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Cleanup statistics retrieved successfully',
+      data: result,
+    });
+  }
+);
 
 /**
  * Trigger manual cleanup (admin only)

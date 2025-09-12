@@ -10,26 +10,28 @@ import {
 } from './settings.interface';
 import { SettingsService } from './settings.service';
 
-const getUserSettings = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.userId;
+const getUserSettings = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.userId;
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'Authentication required',
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const result = await SettingsService.getUserSettings(userId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'User settings retrieved successfully',
+      data: result,
     });
   }
-
-  const result = await SettingsService.getUserSettings(userId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'User settings retrieved successfully',
-    data: result,
-  });
-});
+);
 
 const updateUserSettings = catchAsync<AuthRequest>(
   async (req: AuthRequest, res: Response) => {
@@ -136,27 +138,29 @@ const updateSecuritySettings = catchAsync<AuthRequest>(
   }
 );
 
-const exportUserData = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.userId;
-  const exportRequest: IDataExportRequest = req.body;
+const exportUserData = catchAsync<AuthRequest>(
+  async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.userId;
+    const exportRequest: IDataExportRequest = req.body;
 
-  if (!userId) {
-    return sendResponse(res, {
-      statusCode: httpStatus.UNAUTHORIZED,
-      success: false,
-      message: 'Authentication required',
+    if (!userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const result = await SettingsService.exportUserData(userId, exportRequest);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'User data exported successfully',
+      data: result,
     });
   }
-
-  const result = await SettingsService.exportUserData(userId, exportRequest);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'User data exported successfully',
-    data: result,
-  });
-});
+);
 
 const deleteUserAccount = catchAsync<AuthRequest>(
   async (req: AuthRequest, res: Response) => {

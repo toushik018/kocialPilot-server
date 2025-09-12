@@ -6,7 +6,9 @@ type AsyncRequestHandler<T = Request> = (
   _next: NextFunction
 ) => Promise<unknown>;
 
-export const catchAsync = <T = Request>(fn: AsyncRequestHandler<T>): RequestHandler => {
+export const catchAsync = <T = Request>(
+  fn: AsyncRequestHandler<T>
+): RequestHandler => {
   return async (req, res, next): Promise<void> => {
     try {
       await fn(req as T, res, next);
