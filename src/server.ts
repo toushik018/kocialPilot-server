@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import app from './app';
 import config from './app/config';
 import { cleanupScheduler } from './app/modules/cleanup/cleanup.scheduler';
+import { notificationScheduler } from './app/modules/notification/notification.scheduler';
 
 async function main() {
   console.log('🔄 Starting Kocial Pilot Backend...');
@@ -23,6 +24,10 @@ async function main() {
     // Start cleanup scheduler after successful DB connection
     cleanupScheduler.start();
     console.log('🧹 Cleanup scheduler initialized');
+
+    // Initialize notification scheduler
+    await notificationScheduler.initialize();
+    console.log('🔔 Notification scheduler initialized');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {

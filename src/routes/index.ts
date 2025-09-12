@@ -7,6 +7,7 @@ import { DashboardRoutes } from '../app/modules/dashboard/dashboard.route';
 import { ImageRoutes } from '../app/modules/image/image.route';
 import { MongoPdfRoutes } from '../app/modules/mongo-pdf/mongo-pdf.route';
 import { MongoPostRoutes } from '../app/modules/mongo-posts/mongo-posts.route';
+import { NotificationRoutes } from '../app/modules/notification/notification.route';
 import { OAuthRoutes } from '../app/modules/oauth/oauth.route';
 import { ScheduleRoutes } from '../app/modules/schedule/schedule.route';
 import { SettingsRoutes } from '../app/modules/settings/settings.route';
@@ -28,6 +29,10 @@ const moduleRoutes = [
   {
     path: '/mongo-posts',
     route: MongoPostRoutes,
+  },
+  {
+    path: '/notifications',
+    route: NotificationRoutes,
   },
   {
     path: '/dashboard',
