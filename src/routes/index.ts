@@ -12,6 +12,7 @@ import { OAuthRoutes } from '../app/modules/oauth/oauth.route';
 import { ScheduleRoutes } from '../app/modules/schedule/schedule.route';
 import { SettingsRoutes } from '../app/modules/settings/settings.route';
 import { SocialMediaRoutes } from '../app/modules/social-media/social-media.route';
+import { OAuthRoutes as SocialMediaOAuthRoutes } from '../app/modules/social-media/oauth.route';
 import { UserRoutes } from '../app/modules/user/user.route';
 import { VideoRoutes } from '../app/modules/video/video.route';
 
@@ -73,6 +74,10 @@ const moduleRoutes = [
   {
     path: '/oauth',
     route: OAuthRoutes,
+  },
+  {
+    path: '/oauth/social',
+    route: SocialMediaOAuthRoutes,
   },
 ];
 

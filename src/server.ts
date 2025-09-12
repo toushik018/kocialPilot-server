@@ -3,6 +3,7 @@ import app from './app';
 import config from './app/config';
 import { cleanupScheduler } from './app/modules/cleanup/cleanup.scheduler';
 import { notificationScheduler } from './app/modules/notification/notification.scheduler';
+import { socialMediaScheduler } from './app/modules/social-media/social-media.scheduler';
 
 async function main() {
   console.log('🔄 Starting Kocial Pilot Backend...');
@@ -28,6 +29,10 @@ async function main() {
     // Initialize notification scheduler
     await notificationScheduler.initialize();
     console.log('🔔 Notification scheduler initialized');
+
+    // Initialize social media scheduler
+    socialMediaScheduler.initialize();
+    console.log('📱 Social media scheduler initialized');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
