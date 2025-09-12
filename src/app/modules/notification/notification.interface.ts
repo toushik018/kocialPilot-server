@@ -5,9 +5,12 @@ import {
   NOTIFICATION_STATUS,
 } from './notification.constant';
 
-export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
-export type NotificationPriority = typeof NOTIFICATION_PRIORITY[keyof typeof NOTIFICATION_PRIORITY];
-export type NotificationStatus = typeof NOTIFICATION_STATUS[keyof typeof NOTIFICATION_STATUS];
+export type NotificationType =
+  (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];
+export type NotificationPriority =
+  (typeof NOTIFICATION_PRIORITY)[keyof typeof NOTIFICATION_PRIORITY];
+export type NotificationStatus =
+  (typeof NOTIFICATION_STATUS)[keyof typeof NOTIFICATION_STATUS];
 
 export interface INotification extends Document {
   _id: Types.ObjectId;

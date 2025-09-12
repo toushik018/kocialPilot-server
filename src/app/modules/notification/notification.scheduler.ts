@@ -1,8 +1,11 @@
 import cron from 'node-cron';
+import {
+  NOTIFICATION_PRIORITY,
+  NOTIFICATION_TYPES,
+} from './notification.constant';
+import { NotificationPriority } from './notification.interface';
 import { Notification } from './notification.model';
 import { notificationService } from './notification.service';
-import { NOTIFICATION_TYPES, NOTIFICATION_PRIORITY } from './notification.constant';
-import { NotificationPriority } from './notification.interface';
 
 // Import models dynamically to avoid circular dependencies
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,8 +107,10 @@ class NotificationScheduler {
       }).populate('user_id', 'name email');
 
       for (const post of soonPosts) {
-        const timeUntilPost = Math.ceil((new Date(post.scheduledDate).getTime() - now.getTime()) / (1000 * 60));
-        
+        const timeUntilPost = Math.ceil(
+          (new Date(post.scheduledDate).getTime() - now.getTime()) / (1000 * 60)
+        );
+
         // Create high priority notification for posts within 10 minutes
         if (timeUntilPost <= 10) {
           const existingHighPriorityNotification = await Notification.findOne({
@@ -146,7 +151,7 @@ class NotificationScheduler {
       // Find users whose sessions will expire soon
       // This would depend on your session management implementation
       // For now, we'll create a general session expiry reminder
-      
+
       const activeUsers = await User.find({
         lastLoginAt: {
           $gte: new Date(now.getTime() - 4 * 60 * 60 * 1000), // Active in last 4 hours
@@ -155,7 +160,9 @@ class NotificationScheduler {
 
       for (const user of activeUsers) {
         // Calculate approximate session expiry (assuming 4-hour sessions)
-        const sessionExpiry = new Date(user.lastLoginAt.getTime() + 4 * 60 * 60 * 1000);
+        const sessionExpiry = new Date(
+          user.lastLoginAt.getTime() + 4 * 60 * 60 * 1000
+        );
         const timeUntilExpiry = sessionExpiry.getTime() - now.getTime();
         const minutesUntilExpiry = Math.ceil(timeUntilExpiry / (1000 * 60));
 
@@ -194,7 +201,7 @@ class NotificationScheduler {
   private async cleanupExpiredNotifications() {
     try {
       const now = new Date();
-      
+
       // Delete notifications that have expired
       const result = await Notification.deleteMany({
         expiresAt: { $lt: now },
@@ -209,20 +216,28 @@ class NotificationScheduler {
         readAt: { $lt: thirtyDaysAgo },
       });
 
-      console.log(`Cleaned up ${oldReadResult.deletedCount} old read notifications`);
+      console.log(
+        `Cleaned up ${oldReadResult.deletedCount} old read notifications`
+      );
     } catch (error) {
       console.error('Error cleaning up expired notifications:', error);
     }
   }
 
   // Manual methods for creating specific notifications
-  async createPostScheduledNotification(postId: string, userId: string, scheduledDate: Date) {
+  async createPostScheduledNotification(
+    postId: string,
+    userId: string,
+    scheduledDate: Date
+  ) {
     try {
       const post = await Post.findById(postId);
       if (!post) return;
 
       const now = new Date();
-      const timeUntilPost = Math.ceil((scheduledDate.getTime() - now.getTime()) / (1000 * 60));
+      const timeUntilPost = Math.ceil(
+        (scheduledDate.getTime() - now.getTime()) / (1000 * 60)
+      );
 
       await notificationService.createNotification({
         userId,
@@ -242,7 +257,12 @@ class NotificationScheduler {
     }
   }
 
-  async createSystemNotification(userId: string, title: string, message: string, priority: NotificationPriority = NOTIFICATION_PRIORITY.MEDIUM) {
+  async createSystemNotification(
+    userId: string,
+    title: string,
+    message: string,
+    priority: NotificationPriority = NOTIFICATION_PRIORITY.MEDIUM
+  ) {
     try {
       await notificationService.createNotification({
         userId,
@@ -261,8 +281,12 @@ class NotificationScheduler {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async createUserActivityNotification(userId: string, activityType: string, details: Record<string, any>) {
+  async createUserActivityNotification(
+    userId: string,
+    activityType: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    details: Record<string, any>
+  ) {
     try {
       let title = 'Account Activity';
       let message = 'There was activity on your account.';

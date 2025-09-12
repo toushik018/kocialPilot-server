@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import jwt from 'jsonwebtoken';
 import { IJWTPayload } from './auth.interface';
 

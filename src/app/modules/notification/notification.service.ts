@@ -76,11 +76,7 @@ class NotificationService {
 
       // Execute query
       const [notifications, total] = await Promise.all([
-        Notification.find(filter)
-          .sort(sort)
-          .skip(skip)
-          .limit(limit)
-          .lean(),
+        Notification.find(filter).sort(sort).skip(skip).limit(limit).lean(),
         Notification.countDocuments(filter),
       ]);
 
@@ -117,10 +113,7 @@ class NotificationService {
       });
 
       if (!notification) {
-        throw new AppError(
-          StatusCodes.NOT_FOUND,
-          'Notification not found'
-        );
+        throw new AppError(StatusCodes.NOT_FOUND, 'Notification not found');
       }
 
       return {
@@ -154,10 +147,7 @@ class NotificationService {
       );
 
       if (!notification) {
-        throw new AppError(
-          StatusCodes.NOT_FOUND,
-          'Notification not found'
-        );
+        throw new AppError(StatusCodes.NOT_FOUND, 'Notification not found');
       }
 
       return {
@@ -225,10 +215,7 @@ class NotificationService {
       });
 
       if (!notification) {
-        throw new AppError(
-          StatusCodes.NOT_FOUND,
-          'Notification not found'
-        );
+        throw new AppError(StatusCodes.NOT_FOUND, 'Notification not found');
       }
 
       return {
@@ -251,7 +238,7 @@ class NotificationService {
     action: 'read' | 'unread' | 'archive' | 'delete'
   ): Promise<INotificationResponse> {
     try {
-      const objectIds = notificationIds.map(id => new Types.ObjectId(id));
+      const objectIds = notificationIds.map((id) => new Types.ObjectId(id));
       const filter = {
         _id: { $in: objectIds },
         userId: new Types.ObjectId(userId),
@@ -282,7 +269,8 @@ class NotificationService {
           throw new AppError(StatusCodes.BAD_REQUEST, 'Invalid action');
       }
 
-      const count = 'modifiedCount' in result ? result.modifiedCount : result.deletedCount;
+      const count =
+        'modifiedCount' in result ? result.modifiedCount : result.deletedCount;
       return {
         success: true,
         message: `${count} notifications ${action}ed successfully`,
@@ -359,11 +347,11 @@ class NotificationService {
       const byType: Record<string, number> = {};
       const byPriority: Record<string, number> = {};
 
-      typeStats.forEach(item => {
+      typeStats.forEach((item) => {
         byType[item._id] = item.count;
       });
 
-      priorityStats.forEach(item => {
+      priorityStats.forEach((item) => {
         byPriority[item._id] = item.count;
       });
 
