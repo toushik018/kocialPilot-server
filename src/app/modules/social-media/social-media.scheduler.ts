@@ -302,6 +302,7 @@ export class SocialMediaScheduler {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const matchCondition: any = {
         'metadata.socialMediaResults': { $exists: true },
+        isDeleted: { $ne: true }, // Exclude deleted posts
       };
 
       if (userId) {

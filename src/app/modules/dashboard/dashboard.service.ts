@@ -3,35 +3,46 @@ import { Video } from '../video/video.model';
 import { IDashboardStats } from './dashboard.interface';
 
 const getStats = async (): Promise<IDashboardStats> => {
-  // Get total posts count
-  const totalPosts = await MongoPost.countDocuments();
+  // Get total posts count (excluding deleted)
+  const totalPosts = await MongoPost.countDocuments({
+    isDeleted: { $ne: true },
+  });
 
-  // Get published posts count
+  // Get published posts count (excluding deleted)
   const publishedPosts = await MongoPost.countDocuments({
     status: 'published',
+    isDeleted: { $ne: true },
   });
 
-  // Get scheduled posts count
+  // Get scheduled posts count (excluding deleted)
   const scheduledPosts = await MongoPost.countDocuments({
     status: 'scheduled',
+    isDeleted: { $ne: true },
   });
 
-  // Get draft posts count
-  const draftPosts = await MongoPost.countDocuments({ status: 'draft' });
+  // Get draft posts count (excluding deleted)
+  const draftPosts = await MongoPost.countDocuments({
+    status: 'draft',
+    isDeleted: { $ne: true },
+  });
 
-  // Get image posts count (posts with image_url but no video_url)
+  // Get image posts count (posts with image_url but no video_url, excluding deleted)
   const totalImages = await MongoPost.countDocuments({
     image_url: { $exists: true, $ne: null },
     video_url: { $exists: false },
+    isDeleted: { $ne: true },
   });
 
-  // Get video posts count (posts with video_url)
+  // Get video posts count (posts with video_url, excluding deleted)
   const videoPostsCount = await MongoPost.countDocuments({
     video_url: { $exists: true, $ne: null },
+    isDeleted: { $ne: true },
   });
 
-  // Get standalone videos count from Video collection
-  const standaloneVideosCount = await Video.countDocuments();
+  // Get standalone videos count from Video collection (excluding deleted)
+  const standaloneVideosCount = await Video.countDocuments({
+    isDeleted: { $ne: true },
+  });
 
   // Total videos = video posts + standalone videos
   const totalVideos = videoPostsCount + standaloneVideosCount;
@@ -47,24 +58,27 @@ const getStats = async (): Promise<IDashboardStats> => {
   const sevenDaysAgo = new Date(today);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  // Get next scheduled post
+  // Get next scheduled post (excluding deleted)
   const nextScheduledPost = await MongoPost.findOne({
     status: 'scheduled',
     scheduled_date: { $exists: true, $ne: null, $gte: today },
+    isDeleted: { $ne: true },
   })
     .sort({ scheduled_date: 1 })
     .lean();
 
-  // Get latest generated caption
+  // Get latest generated caption (excluding deleted)
   const latestGeneratedPost = await MongoPost.findOne({
     caption: { $exists: true, $ne: null },
+    isDeleted: { $ne: true },
   })
     .sort({ createdAt: -1 })
     .lean();
 
-  // Get all posts created in the last 7 days for activity tracking
+  // Get all posts created in the last 7 days for activity tracking (excluding deleted)
   const weeklyPosts = await MongoPost.find({
     createdAt: { $gte: sevenDaysAgo },
+    isDeleted: { $ne: true },
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -81,10 +95,11 @@ const getStats = async (): Promise<IDashboardStats> => {
     platform: post.platform || 'Unknown',
   }));
 
-  // Get upcoming scheduled posts for near-term activity
+  // Get upcoming scheduled posts for near-term activity (excluding deleted)
   const upcomingPosts = await MongoPost.find({
     status: 'scheduled',
     scheduled_date: { $exists: true, $ne: null, $gte: today },
+    isDeleted: { $ne: true },
   })
     .sort({ scheduled_date: 1 })
     .limit(5)
@@ -104,12 +119,15 @@ const getStats = async (): Promise<IDashboardStats> => {
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 10);
 
-  // Get platform breakdown
+  // Get platform breakdown (excluding deleted)
   const platforms = ['facebook', 'instagram', 'twitter', 'linkedin'];
   const platformBreakdown = await Promise.all(
     platforms.map(async (platform) => ({
       platform,
-      count: await MongoPost.countDocuments({ platform }),
+      count: await MongoPost.countDocuments({
+        platform,
+        isDeleted: { $ne: true },
+      }),
     }))
   );
 
