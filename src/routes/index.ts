@@ -15,6 +15,7 @@ import { SocialMediaRoutes } from '../app/modules/social-media/social-media.rout
 import { OAuthRoutes as SocialMediaOAuthRoutes } from '../app/modules/social-media/oauth.route';
 import { UserRoutes } from '../app/modules/user/user.route';
 import { VideoRoutes } from '../app/modules/video/video.route';
+import { SearchRoutes } from '../app/modules/search/search.route';
 
 const router = Router();
 
@@ -78,6 +79,10 @@ const moduleRoutes = [
   {
     path: '/oauth/social',
     route: SocialMediaOAuthRoutes,
+  },
+  {
+    path: '/search',
+    route: SearchRoutes,
   },
 ];
 

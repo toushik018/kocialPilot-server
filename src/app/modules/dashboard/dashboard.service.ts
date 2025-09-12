@@ -101,8 +101,12 @@ const getStats = async (): Promise<IDashboardStats> => {
   // Find the earliest scheduled date between posts and videos
   let earliestScheduledDate: Date | null = null;
   if (nextScheduledPost && nextScheduledVideo) {
-    const postDate = nextScheduledPost.scheduled_date ? new Date(nextScheduledPost.scheduled_date) : null;
-    const videoDate = nextScheduledVideo.scheduledDate ? new Date(nextScheduledVideo.scheduledDate) : null;
+    const postDate = nextScheduledPost.scheduled_date
+      ? new Date(nextScheduledPost.scheduled_date)
+      : null;
+    const videoDate = nextScheduledVideo.scheduledDate
+      ? new Date(nextScheduledVideo.scheduledDate)
+      : null;
     if (postDate && videoDate) {
       earliestScheduledDate = postDate <= videoDate ? postDate : videoDate;
     } else if (postDate) {
