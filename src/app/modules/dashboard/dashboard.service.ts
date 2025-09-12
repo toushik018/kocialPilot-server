@@ -50,6 +50,19 @@ const getStats = async (): Promise<IDashboardStats> => {
   // Total media = images + videos
   const totalMedia = totalImages + totalVideos;
 
+  // Get total captions count (posts with captions + videos with captions, excluding deleted)
+  const postCaptionsCount = await MongoPost.countDocuments({
+    caption: { $exists: true, $ne: null, $ne: '' },
+    isDeleted: { $ne: true },
+  });
+
+  const videoCaptionsCount = await Video.countDocuments({
+    caption: { $exists: true, $ne: null, $ne: '' },
+    isDeleted: { $ne: true },
+  });
+
+  const totalCaptions = postCaptionsCount + videoCaptionsCount;
+
   // Calculate engagement rate (mock data for now)
   const engagementRate = 0.15;
 
@@ -147,6 +160,7 @@ const getStats = async (): Promise<IDashboardStats> => {
     totalImages,
     totalVideos,
     totalMedia,
+    totalCaptions,
     engagementRate,
     recentActivity,
     platformBreakdown,
