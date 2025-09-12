@@ -8,7 +8,7 @@ import { AuthRequest } from '../auth/auth.interface';
 /**
  * Get cleanup statistics
  */
-const getCleanupStats = catchAsync(async (req: AuthRequest, res: Response) => {
+const getCleanupStats = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const result = await CleanupService.getCleanupStats();
 
   sendResponse(res, {

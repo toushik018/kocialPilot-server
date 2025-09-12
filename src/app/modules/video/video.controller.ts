@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import httpStatus from 'http-status';
-import { CustomRequest } from '../../interface/types';
+import { CustomRequest, RequestWithFile } from '../../interface/types';
 import { catchAsync } from '../../utils/catchAsync';
 import { sendResponse } from '../../utils/sendResponse';
 import { VideoService } from './video.service';
@@ -8,12 +8,7 @@ import pick from '../../utils/pick';
 import { videoFilterableFields } from './video.constant';
 import { paginationFields } from '../../constants/pagination';
 
-interface RequestWithFile extends CustomRequest {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  file?: any;
-}
-
-const uploadVideo = catchAsync(async (req: RequestWithFile, res: Response) => {
+const uploadVideo = catchAsync<RequestWithFile>(async (req: RequestWithFile, res: Response) => {
   if (!req.file) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
@@ -48,7 +43,7 @@ const uploadVideo = catchAsync(async (req: RequestWithFile, res: Response) => {
   });
 });
 
-const getAllVideos = catchAsync(async (req: CustomRequest, res: Response) => {
+const getAllVideos = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const filters = pick(req.query, videoFilterableFields);
   const paginationOptions = pick(req.query, paginationFields);
 
@@ -66,7 +61,7 @@ const getAllVideos = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const getVideoById = catchAsync(async (req: CustomRequest, res: Response) => {
+const getVideoById = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   const userId = req.user?.userId || '';
 
@@ -80,7 +75,7 @@ const getVideoById = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const updateVideo = catchAsync(async (req: CustomRequest, res: Response) => {
+const updateVideo = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   const userId = req.user?.userId || '';
 
@@ -94,7 +89,7 @@ const updateVideo = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const deleteVideo = catchAsync(async (req: CustomRequest, res: Response) => {
+const deleteVideo = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   const userId = req.user?.userId || '';
 
@@ -108,7 +103,7 @@ const deleteVideo = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const scheduleVideo = catchAsync(async (req: CustomRequest, res: Response) => {
+const scheduleVideo = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   const userId = req.user?.userId || '';
   const { scheduledDate } = req.body;
@@ -438,7 +433,7 @@ const getRecentlyDeletedVideos = catchAsync(
   }
 );
 
-const restoreVideo = catchAsync(async (req: CustomRequest, res: Response) => {
+const restoreVideo = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   const userId = req.user?.userId || '';
 

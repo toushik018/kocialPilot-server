@@ -37,7 +37,7 @@ interface CalendarData {
   total_count: number;
 }
 
-const createPost = catchAsync(async (req: CustomRequest, res: Response) => {
+const createPost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   try {
     console.log('📝 Creating post with data:', req.body);
     console.log('👤 User info:', {
@@ -150,7 +150,7 @@ const uploadImagePost = catchAsync(
   }
 );
 
-const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
+const getAllPosts = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const filters = pick(req.query, [
     'searchTerm',
     'title',
@@ -273,7 +273,7 @@ const getAllPosts = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const getDraftPosts = catchAsync(async (req: CustomRequest, res: Response) => {
+const getDraftPosts = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const result = await MongoPostService.getDraftPosts();
 
   // Transform the response to match frontend expectations
@@ -308,7 +308,7 @@ const getDraftPosts = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const getPostById = catchAsync(async (req: CustomRequest, res: Response) => {
+const getPostById = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const id = req.params.id;
   const result = await MongoPostService.getPostById(id);
 
@@ -328,7 +328,7 @@ const getPostById = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const updatePost = catchAsync(async (req: CustomRequest, res: Response) => {
+const updatePost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const id = req.params.id;
   const updatedData = req.body as Partial<IMongoPost>;
 
@@ -350,7 +350,7 @@ const updatePost = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const deletePost = catchAsync(async (req: CustomRequest, res: Response) => {
+const deletePost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const id = req.params.id;
 
   const result = await MongoPostService.deletePost(id);
@@ -505,7 +505,7 @@ const getCalendarPosts = catchAsync(
   }
 );
 
-const getPostsByDate = catchAsync(async (req: CustomRequest, res: Response) => {
+const getPostsByDate = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const date = req.params.date;
 
   // Create start and end of day dates
@@ -623,7 +623,7 @@ const getOptimalScheduleTime = catchAsync(
 );
 
 // Add the missing controller methods
-const reschedulePost = catchAsync(async (req: CustomRequest, res: Response) => {
+const reschedulePost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   const { scheduled_date, scheduled_time } = req.body;
 
@@ -900,7 +900,7 @@ const getRecentlyDeletedPosts = catchAsync(
 );
 
 // Restore a deleted post
-const restorePost = catchAsync(async (req: CustomRequest, res: Response) => {
+const restorePost = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const id = req.params.id;
 
   const result = await MongoPostService.restorePost(id);

@@ -1,16 +1,12 @@
 import { Response } from 'express';
 
 import httpStatus from 'http-status';
-import { CustomRequest } from '../../interface/types';
+import { CustomRequest, RequestWithFile } from '../../interface/types';
 import { catchAsync } from '../../utils/catchAsync';
 import { sendResponse } from '../../utils/sendResponse';
 import { ImageService } from './image.service';
 
-interface RequestWithFile extends CustomRequest {
-  file?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-}
-
-const uploadImage = catchAsync(async (req: RequestWithFile, res: Response) => {
+const uploadImage = catchAsync<RequestWithFile>(async (req: RequestWithFile, res: Response) => {
   const file = req.file;
   const userId = req.user?.userId;
 
@@ -38,7 +34,7 @@ const uploadImage = catchAsync(async (req: RequestWithFile, res: Response) => {
   });
 });
 
-const getAllImages = catchAsync(async (req: CustomRequest, res: Response) => {
+const getAllImages = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
@@ -58,7 +54,7 @@ const getAllImages = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const getImageById = catchAsync(async (req: CustomRequest, res: Response) => {
+const getImageById = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   const result = await ImageService.getImageById(id);
 
@@ -77,7 +73,7 @@ const getImageById = catchAsync(async (req: CustomRequest, res: Response) => {
   });
 });
 
-const deleteImage = catchAsync(async (req: CustomRequest, res: Response) => {
+const deleteImage = catchAsync<CustomRequest>(async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   const result = await ImageService.deleteImage(id);
 

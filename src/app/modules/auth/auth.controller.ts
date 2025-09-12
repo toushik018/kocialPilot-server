@@ -123,7 +123,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const verifyToken = catchAsync(async (req: AuthRequest, res: Response) => {
+const verifyToken = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   // If we reach here, the token is valid (auth middleware passed)
   const user = req.user!;
 
@@ -142,7 +142,7 @@ const verifyToken = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const getProfile = catchAsync(async (req: AuthRequest, res: Response) => {
+const getProfile = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const result = await AuthService.getUserProfile(userId);
 
@@ -154,7 +154,7 @@ const getProfile = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const updateProfile = catchAsync(async (req: AuthRequest, res: Response) => {
+const updateProfile = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const result = await AuthService.updateUserProfile(userId, req.body);
 
@@ -166,7 +166,7 @@ const updateProfile = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const changePassword = catchAsync(async (req: AuthRequest, res: Response) => {
+const changePassword = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   await AuthService.changePassword(userId, req.body);
 
@@ -178,7 +178,7 @@ const changePassword = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const addSocialAccount = catchAsync(async (req: AuthRequest, res: Response) => {
+const addSocialAccount = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const result = await AuthService.addSocialAccount(userId, req.body);
 

@@ -11,7 +11,7 @@ interface AuthRequest extends Request {
   };
 }
 
-const createSchedule = catchAsync(async (req: AuthRequest, res: Response) => {
+const createSchedule = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   // Get user ID from auth middleware
   const userId = req.user?.userId;
 
@@ -39,7 +39,7 @@ const createSchedule = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const getUserSchedule = catchAsync(async (req: AuthRequest, res: Response) => {
+const getUserSchedule = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
@@ -68,7 +68,7 @@ const getUserSchedule = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const getAllUserSchedules = catchAsync(
+const getAllUserSchedules = catchAsync<AuthRequest>(
   async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
 
@@ -91,7 +91,7 @@ const getAllUserSchedules = catchAsync(
   }
 );
 
-const updateSchedule = catchAsync(async (req: AuthRequest, res: Response) => {
+const updateSchedule = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const id = req.params.id;
   const userId = req.user?.userId;
 
@@ -121,7 +121,7 @@ const updateSchedule = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const deleteSchedule = catchAsync(async (req: AuthRequest, res: Response) => {
+const deleteSchedule = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const id = req.params.id;
   const userId = req.user?.userId;
 

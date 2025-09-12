@@ -42,7 +42,7 @@ const createNotification = catchAsync(
 );
 
 // Get notifications for the authenticated user
-const getNotifications = catchAsync(async (req: AuthRequest, res: Response) => {
+const getNotifications = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id || req.user?.userId;
   if (!userId) {
     return sendResponse(res, {
@@ -136,7 +136,7 @@ const updateNotification = catchAsync(
 );
 
 // Mark a notification as read
-const markAsRead = catchAsync(async (req: AuthRequest, res: Response) => {
+const markAsRead = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const userId = req.user?.id || req.user?.userId;
   if (!userId) {
@@ -158,7 +158,7 @@ const markAsRead = catchAsync(async (req: AuthRequest, res: Response) => {
 });
 
 // Mark all notifications as read
-const markAllAsRead = catchAsync(async (req: AuthRequest, res: Response) => {
+const markAllAsRead = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id || req.user?.userId;
   if (!userId) {
     return sendResponse(res, {
@@ -252,7 +252,7 @@ const getNotificationStats = catchAsync(
 );
 
 // Get unread notification count
-const getUnreadCount = catchAsync(async (req: AuthRequest, res: Response) => {
+const getUnreadCount = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id || req.user?.userId;
   if (!userId) {
     return sendResponse(res, {

@@ -10,7 +10,7 @@ import {
 } from './settings.interface';
 import { SettingsService } from './settings.service';
 
-const getUserSettings = catchAsync(async (req: AuthRequest, res: Response) => {
+const getUserSettings = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
@@ -31,7 +31,7 @@ const getUserSettings = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const updateUserSettings = catchAsync(
+const updateUserSettings = catchAsync<AuthRequest>(
   async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     const updateData: ISettingsUpdateRequest = req.body;
@@ -55,7 +55,7 @@ const updateUserSettings = catchAsync(
   }
 );
 
-const updateNotificationSettings = catchAsync(
+const updateNotificationSettings = catchAsync<AuthRequest>(
   async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     const notificationData = req.body;
@@ -82,7 +82,7 @@ const updateNotificationSettings = catchAsync(
   }
 );
 
-const updatePrivacySettings = catchAsync(
+const updatePrivacySettings = catchAsync<AuthRequest>(
   async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     const privacyData = req.body;
@@ -109,7 +109,7 @@ const updatePrivacySettings = catchAsync(
   }
 );
 
-const updateSecuritySettings = catchAsync(
+const updateSecuritySettings = catchAsync<AuthRequest>(
   async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     const securityData = req.body;
@@ -136,7 +136,7 @@ const updateSecuritySettings = catchAsync(
   }
 );
 
-const exportUserData = catchAsync(async (req: AuthRequest, res: Response) => {
+const exportUserData = catchAsync<AuthRequest>(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.userId;
   const exportRequest: IDataExportRequest = req.body;
 
@@ -158,7 +158,7 @@ const exportUserData = catchAsync(async (req: AuthRequest, res: Response) => {
   });
 });
 
-const deleteUserAccount = catchAsync(
+const deleteUserAccount = catchAsync<AuthRequest>(
   async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     const deletionRequest: IAccountDeletionRequest = req.body;
@@ -184,7 +184,7 @@ const deleteUserAccount = catchAsync(
   }
 );
 
-const resetUserSettings = catchAsync(
+const resetUserSettings = catchAsync<AuthRequest>(
   async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
 
