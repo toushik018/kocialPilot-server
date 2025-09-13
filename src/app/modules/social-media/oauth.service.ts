@@ -46,8 +46,7 @@ export class OAuthService {
     const params = new URLSearchParams({
       client_id: process.env.FACEBOOK_APP_ID!,
       redirect_uri: process.env.FACEBOOK_REDIRECT_URI!,
-      scope:
-        'pages_manage_posts,pages_read_engagement,instagram_content_publish,instagram_manage_insights',
+      scope: 'public_profile',
       response_type: 'code',
       state,
     });
