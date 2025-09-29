@@ -223,6 +223,7 @@ export const ScheduleController = {
         scheduled_date: string;
         scheduled_time: string;
       };
+
       if (!scheduled_date || !scheduled_time) {
         return sendResponse(res, {
           statusCode: httpStatus.BAD_REQUEST,
@@ -231,11 +232,15 @@ export const ScheduleController = {
         });
       }
 
-      const result = await MongoPostService.updatePost(id, {
-        scheduled_date: new Date(scheduled_date),
-        scheduled_time,
-        status: 'scheduled',
-      });
+      const result = await MongoPostService.updatePost(
+        id,
+        {
+          scheduled_date: new Date(scheduled_date),
+          scheduled_time,
+          status: 'scheduled',
+        },
+        req.user?.userId || ''
+      );
 
       if (!result) {
         return sendResponse(res, {
@@ -260,6 +265,7 @@ export const ScheduleController = {
         scheduled_date: string;
         scheduled_time: string;
       };
+
       if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
         return sendResponse(res, {
           statusCode: httpStatus.BAD_REQUEST,
@@ -267,6 +273,7 @@ export const ScheduleController = {
           message: 'Post IDs are required',
         });
       }
+
       if (!scheduled_date || !scheduled_time) {
         return sendResponse(res, {
           statusCode: httpStatus.BAD_REQUEST,
@@ -274,27 +281,42 @@ export const ScheduleController = {
           message: 'Scheduled date and time are required',
         });
       }
-      const updatedPosts = [] as unknown[];
+
+      const updatedPosts: unknown[] = [];
       const errors: string[] = [];
-      for (const id of postIds) {
+
+      for (const postId of postIds) {
         try {
-          const result = await MongoPostService.updatePost(id, {
-            scheduled_date: new Date(scheduled_date),
-            scheduled_time,
-            status: 'scheduled',
-          });
-          if (result) updatedPosts.push(result);
-          else errors.push(`Post with ID ${id} not found`);
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : 'Unknown error';
-          errors.push(`Error updating post ${id}: ${msg}`);
+          const updatedPost = await MongoPostService.updatePost(
+            postId,
+            {
+              scheduled_date: new Date(scheduled_date),
+              scheduled_time,
+              status: 'scheduled',
+            },
+            req.user?.userId || ''
+          );
+
+          if (updatedPost) {
+            updatedPosts.push(updatedPost);
+          } else {
+            errors.push(`Post with ID ${postId} not found`);
+          }
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Unknown error';
+          errors.push(`Error updating post ${postId}: ${message}`);
         }
       }
+
       sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: `${updatedPosts.length} posts scheduled successfully`,
-        data: { updatedPosts, errors: errors.length ? errors : undefined },
+        data: {
+          updatedPosts,
+          errors: errors.length > 0 ? errors : undefined,
+        },
       });
     }
   ),
@@ -305,6 +327,7 @@ export const ScheduleController = {
         scheduled_date: string;
         scheduled_time: string;
       };
+
       if (!scheduled_date || !scheduled_time) {
         return sendResponse(res, {
           statusCode: httpStatus.BAD_REQUEST,
@@ -312,11 +335,17 @@ export const ScheduleController = {
           message: 'Scheduled date and time are required',
         });
       }
-      const result = await MongoPostService.updatePost(id, {
-        scheduled_date: new Date(scheduled_date),
-        scheduled_time,
-        status: 'scheduled',
-      });
+
+      const result = await MongoPostService.updatePost(
+        id,
+        {
+          scheduled_date: new Date(scheduled_date),
+          scheduled_time,
+          status: 'scheduled',
+        },
+        req.user?.userId || ''
+      );
+
       if (!result) {
         return sendResponse(res, {
           statusCode: httpStatus.NOT_FOUND,
@@ -324,6 +353,7 @@ export const ScheduleController = {
           message: 'Post not found',
         });
       }
+
       sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,

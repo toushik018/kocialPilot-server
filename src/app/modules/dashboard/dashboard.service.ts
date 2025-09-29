@@ -2,28 +2,32 @@ import { Post as MongoPost } from '../mongo-posts/mongo-posts.model';
 import { Video } from '../video/video.model';
 import { IDashboardStats } from './dashboard.interface';
 
-const getStats = async (): Promise<IDashboardStats> => {
+const getStats = async (userId?: string): Promise<IDashboardStats> => {
   // Get total posts count (excluding deleted)
   const totalPosts = await MongoPost.countDocuments({
     isDeleted: { $ne: true },
+    ...(userId ? { user_id: userId } : {}),
   });
 
   // Get published posts count (excluding deleted)
   const publishedPosts = await MongoPost.countDocuments({
     status: 'published',
     isDeleted: { $ne: true },
+    ...(userId ? { user_id: userId } : {}),
   });
 
   // Get scheduled posts count (excluding deleted)
   const scheduledPostsCount = await MongoPost.countDocuments({
     status: 'scheduled',
     isDeleted: { $ne: true },
+    ...(userId ? { user_id: userId } : {}),
   });
 
   // Get scheduled videos count (excluding deleted)
   const scheduledVideosCount = await Video.countDocuments({
     isScheduled: true,
     isDeleted: { $ne: true },
+    ...(userId ? { userId } : {}),
   });
 
   // Total scheduled items = scheduled posts + scheduled videos
@@ -33,6 +37,7 @@ const getStats = async (): Promise<IDashboardStats> => {
   const draftPosts = await MongoPost.countDocuments({
     status: 'draft',
     isDeleted: { $ne: true },
+    ...(userId ? { user_id: userId } : {}),
   });
 
   // Get image posts count (posts with image_url but no video_url, excluding deleted)
@@ -40,17 +45,20 @@ const getStats = async (): Promise<IDashboardStats> => {
     image_url: { $exists: true, $ne: null },
     video_url: { $exists: false },
     isDeleted: { $ne: true },
+    ...(userId ? { user_id: userId } : {}),
   });
 
   // Get video posts count (posts with video_url, excluding deleted)
   const videoPostsCount = await MongoPost.countDocuments({
     video_url: { $exists: true, $ne: null },
     isDeleted: { $ne: true },
+    ...(userId ? { user_id: userId } : {}),
   });
 
   // Get standalone videos count from Video collection (excluding deleted)
   const standaloneVideosCount = await Video.countDocuments({
     isDeleted: { $ne: true },
+    ...(userId ? { userId } : {}),
   });
 
   // Total videos = video posts + standalone videos
@@ -63,11 +71,13 @@ const getStats = async (): Promise<IDashboardStats> => {
   const postCaptionsCount = await MongoPost.countDocuments({
     caption: { $exists: true, $nin: [null, ''] },
     isDeleted: { $ne: true },
+    ...(userId ? { user_id: userId } : {}),
   });
 
   const videoCaptionsCount = await Video.countDocuments({
     caption: { $exists: true, $nin: [null, ''] },
     isDeleted: { $ne: true },
+    ...(userId ? { userId } : {}),
   });
 
   const totalCaptions = postCaptionsCount + videoCaptionsCount;
@@ -85,6 +95,7 @@ const getStats = async (): Promise<IDashboardStats> => {
     status: 'scheduled',
     scheduled_date: { $exists: true, $ne: null, $gte: today },
     isDeleted: { $ne: true },
+    ...(userId ? { user_id: userId } : {}),
   })
     .sort({ scheduled_date: 1 })
     .lean();
@@ -94,6 +105,7 @@ const getStats = async (): Promise<IDashboardStats> => {
     isScheduled: true,
     scheduledDate: { $exists: true, $ne: null, $gte: today },
     isDeleted: { $ne: true },
+    ...(userId ? { userId } : {}),
   })
     .sort({ scheduledDate: 1 })
     .lean();
@@ -132,6 +144,7 @@ const getStats = async (): Promise<IDashboardStats> => {
   const weeklyPosts = await MongoPost.find({
     createdAt: { $gte: sevenDaysAgo },
     isDeleted: { $ne: true },
+    ...(userId ? { user_id: userId } : {}),
   })
     .sort({ createdAt: -1 })
     .lean();
@@ -180,6 +193,7 @@ const getStats = async (): Promise<IDashboardStats> => {
       count: await MongoPost.countDocuments({
         platform,
         isDeleted: { $ne: true },
+        ...(userId ? { user_id: userId } : {}),
       }),
     }))
   );

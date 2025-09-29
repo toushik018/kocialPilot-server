@@ -21,13 +21,13 @@ router.post(
 
 // Calendar routes moved to calendar module
 
-router.get('/all', MongoPostController.getAllPosts);
+router.get('/all', auth(), MongoPostController.getAllPosts);
 
 // Drafts routes moved to drafts module
 
-router.get('/:id', MongoPostController.getPostById);
+router.get('/:id', auth(), MongoPostController.getPostById);
 
-router.patch('/:id', MongoPostController.updatePost);
+router.patch('/:id', auth(), MongoPostController.updatePost);
 
 router.delete('/:id', auth(), MongoPostController.deletePost);
 

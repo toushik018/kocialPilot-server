@@ -68,10 +68,13 @@ const getDrafts = async (
   };
 };
 
-// Delete a single draft post (soft delete)
-const deleteDraft = async (id: string): Promise<IMongoPost | null> => {
-  const result = await Post.findByIdAndUpdate(
-    id,
+// Delete a single draft post (soft delete) with user ownership check
+const deleteDraft = async (
+  id: string,
+  userId: string
+): Promise<IMongoPost | null> => {
+  const result = await Post.findOneAndUpdate(
+    { _id: id, user_id: userId, status: 'draft', isDeleted: false },
     { isDeleted: true },
     { new: true }
   );
@@ -113,15 +116,21 @@ const permanentlyDeleteDraft = async (
   return result;
 };
 
-// Delete multiple draft posts (soft delete)
+// Delete multiple draft posts (soft delete) with user ownership check
 const deleteMultipleDrafts = async (
-  postIds: string[]
+  postIds: string[],
+  userId: string
 ): Promise<IMongoPost[]> => {
   await Post.updateMany(
-    { _id: { $in: postIds }, status: 'draft', isDeleted: false },
+    {
+      _id: { $in: postIds },
+      user_id: userId,
+      status: 'draft',
+      isDeleted: false,
+    },
     { isDeleted: true }
   );
-  return Post.find({ _id: { $in: postIds } });
+  return Post.find({ _id: { $in: postIds }, user_id: userId });
 };
 
 // Permanently delete multiple drafts

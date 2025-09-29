@@ -66,10 +66,13 @@ const getRecentlyDeletedPosts = async (
   };
 };
 
-// Restore a soft-deleted post
-const restorePost = async (id: string): Promise<IMongoPost | null> => {
-  const result = await Post.findByIdAndUpdate(
-    id,
+// Restore a soft-deleted post (ownership enforced)
+const restorePost = async (
+  id: string,
+  userId: string
+): Promise<IMongoPost | null> => {
+  const result = await Post.findOneAndUpdate(
+    { _id: id, user_id: userId, isDeleted: true },
     { isDeleted: false },
     { new: true }
   );
@@ -78,10 +81,15 @@ const restorePost = async (id: string): Promise<IMongoPost | null> => {
 
 // Permanently delete a post (hard delete with Cloudinary cleanup)
 const permanentlyDeletePost = async (
-  id: string
+  id: string,
+  userId: string
 ): Promise<IMongoPost | null> => {
   // First get the post to check for Cloudinary assets
-  const post = await Post.findById(id);
+  const post = await Post.findOne({
+    _id: id,
+    user_id: userId,
+    isDeleted: true,
+  });
   if (!post) return null;
 
   // Delete image from Cloudinary if it exists
@@ -109,29 +117,34 @@ const permanentlyDeletePost = async (
   }
 
   // Permanently delete from database
-  const result = await Post.findByIdAndDelete(id);
+  const result = await Post.findOneAndDelete({ _id: id, user_id: userId });
   return result;
 };
 
 // Restore multiple posts
 const restoreMultiplePosts = async (
-  postIds: string[]
+  postIds: string[],
+  userId: string
 ): Promise<IMongoPost[]> => {
   await Post.updateMany(
-    { _id: { $in: postIds }, isDeleted: true },
+    { _id: { $in: postIds }, user_id: userId, isDeleted: true },
     { isDeleted: false }
   );
-  const updatedPosts = await Post.find({ _id: { $in: postIds } });
+  const updatedPosts = await Post.find({
+    _id: { $in: postIds },
+    user_id: userId,
+  });
   return updatedPosts;
 };
 
 // Permanently delete multiple posts
 const permanentlyDeleteMultiplePosts = async (
-  postIds: string[]
+  postIds: string[],
+  userId: string
 ): Promise<IMongoPost[]> => {
   const deletedPosts: IMongoPost[] = [];
   for (const id of postIds) {
-    const post = await permanentlyDeletePost(id);
+    const post = await permanentlyDeletePost(id, userId);
     if (post) deletedPosts.push(post);
   }
   return deletedPosts;

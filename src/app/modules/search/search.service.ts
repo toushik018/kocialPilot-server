@@ -5,7 +5,10 @@ import { User } from '../auth/auth.model';
 import { SearchQuery, SearchResult, SearchResponse } from './search.interface';
 
 class SearchService {
-  async globalSearch(searchQuery: SearchQuery): Promise<SearchResponse> {
+  async globalSearch(
+    searchQuery: SearchQuery,
+    userId?: string
+  ): Promise<SearchResponse> {
     const { query, type = 'all', limit = 10, offset = 0 } = searchQuery;
 
     if (!query || query.trim().length === 0) {
@@ -21,10 +24,12 @@ class SearchService {
 
     // Search posts
     if (type === 'all' || type === 'post') {
-      const posts = await Post.find({
+      const postFilter: Record<string, unknown> = {
         $or: [{ caption: searchRegex }, { hashtags: { $in: [searchRegex] } }],
         isDeleted: false,
-      })
+      };
+      if (userId) postFilter.user_id = userId;
+      const posts = await Post.find(postFilter)
         .limit(limit)
         .skip(offset)
         .sort({ createdAt: -1 })
@@ -45,7 +50,7 @@ class SearchService {
 
     // Search videos
     if (type === 'all' || type === 'video') {
-      const videos = await Video.find({
+      const videoFilter: Record<string, unknown> = {
         $or: [
           { caption: searchRegex },
           { description: searchRegex },
@@ -53,7 +58,9 @@ class SearchService {
           { hashtags: { $in: [searchRegex] } },
         ],
         isDeleted: false,
-      })
+      };
+      if (userId) videoFilter.userId = userId;
+      const videos = await Video.find(videoFilter)
         .limit(limit)
         .skip(offset)
         .sort({ createdAt: -1 })
@@ -74,9 +81,11 @@ class SearchService {
 
     // Search images
     if (type === 'all' || type === 'image') {
-      const images = await Image.find({
+      const imageFilter: Record<string, unknown> = {
         $or: [{ original_filename: searchRegex }, { filename: searchRegex }],
-      })
+      };
+      if (userId) imageFilter.user_id = userId;
+      const images = await Image.find(imageFilter)
         .limit(limit)
         .skip(offset)
         .sort({ uploaded_at: -1 })
@@ -97,13 +106,7 @@ class SearchService {
 
     // Search users (if needed)
     if (type === 'all' || type === 'user') {
-      const users = await User.find({
-        $or: [
-          { firstName: searchRegex },
-          { lastName: searchRegex },
-          { email: searchRegex },
-        ],
-      })
+      const users = await User.find({ _id: userId })
         .limit(limit)
         .skip(offset)
         .sort({ createdAt: -1 })
@@ -150,14 +153,20 @@ class SearchService {
     };
   }
 
-  async getPopularSearches(): Promise<SearchResult[]> {
+  async getPopularSearches(userId?: string): Promise<SearchResult[]> {
     // Get recent popular posts and videos
-    const recentPosts = await Post.find({ isDeleted: false })
+    const recentPosts = await Post.find({
+      isDeleted: false,
+      ...(userId ? { user_id: userId } : {}),
+    })
       .sort({ createdAt: -1 })
       .limit(3)
       .lean();
 
-    const recentVideos = await Video.find({ isDeleted: false })
+    const recentVideos = await Video.find({
+      isDeleted: false,
+      ...(userId ? { userId } : {}),
+    })
       .sort({ createdAt: -1 })
       .limit(2)
       .lean();

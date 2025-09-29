@@ -54,6 +54,7 @@ const getDraftPosts = catchAsync<CustomRequest>(
 const deleteMultipleDraftPosts = catchAsync(
   async (req: CustomRequest, res: Response) => {
     const { postIds } = req.body as { postIds: string[] };
+    const userId = req.user?.userId as string | undefined;
 
     if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
       return sendResponse(res, {
@@ -63,7 +64,10 @@ const deleteMultipleDraftPosts = catchAsync(
       });
     }
 
-    const deletedPosts = await DraftsService.deleteMultipleDrafts(postIds);
+    const deletedPosts = await DraftsService.deleteMultipleDrafts(
+      postIds,
+      userId || ''
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -77,8 +81,9 @@ const deleteMultipleDraftPosts = catchAsync(
 const deleteSingleDraftPost = catchAsync(
   async (req: CustomRequest, res: Response) => {
     const { id } = req.params;
+    const userId = req.user?.userId as string | undefined;
 
-    const result = await DraftsService.deleteDraft(id);
+    const result = await DraftsService.deleteDraft(id, userId || '');
     if (!result) {
       return sendResponse(res, {
         statusCode: httpStatus.NOT_FOUND,

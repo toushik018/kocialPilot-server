@@ -38,7 +38,10 @@ const getRecentlyDeletedPosts = catchAsync<CustomRequest>(
 const restorePost = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
     const id = req.params.id;
-    const result = await RecentDeleteService.restorePost(id);
+    const result = await RecentDeleteService.restorePost(
+      id,
+      req.user?.userId || ''
+    );
 
     if (!result) {
       return sendResponse(res, {
@@ -60,7 +63,10 @@ const restorePost = catchAsync<CustomRequest>(
 const permanentlyDeletePost = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
     const id = req.params.id;
-    const result = await RecentDeleteService.permanentlyDeletePost(id);
+    const result = await RecentDeleteService.permanentlyDeletePost(
+      id,
+      req.user?.userId || ''
+    );
 
     if (!result) {
       return sendResponse(res, {
@@ -91,8 +97,10 @@ const restoreMultiplePosts = catchAsync<CustomRequest>(
     }
 
     const { postIds } = parsed.data;
-    const restoredPosts =
-      await RecentDeleteService.restoreMultiplePosts(postIds);
+    const restoredPosts = await RecentDeleteService.restoreMultiplePosts(
+      postIds,
+      req.user?.userId || ''
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -116,7 +124,10 @@ const permanentlyDeleteMultiplePosts = catchAsync<CustomRequest>(
 
     const { postIds } = parsed.data;
     const deletedPosts =
-      await RecentDeleteService.permanentlyDeleteMultiplePosts(postIds);
+      await RecentDeleteService.permanentlyDeleteMultiplePosts(
+        postIds,
+        req.user?.userId || ''
+      );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

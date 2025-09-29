@@ -157,6 +157,7 @@ const getPostsByDate = catchAsync(async (req: CustomRequest, res: Response) => {
 
   const result = await Post.find({
     isDeleted: { $ne: true }, // Exclude deleted posts
+    user_id: req.user?.userId,
     $or: [
       {
         status: 'scheduled',
