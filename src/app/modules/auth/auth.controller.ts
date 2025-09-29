@@ -51,6 +51,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     data: {
       accessToken,
+      refreshToken,
       expiresAt,
       user: {
         _id: user._id,
