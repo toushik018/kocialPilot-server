@@ -1,11 +1,11 @@
 import { Response } from 'express';
 import httpStatus from 'http-status';
+import { paginationFields } from '../../constants/pagination';
 import { CustomRequest } from '../../interface/types';
 import { catchAsync } from '../../utils/catchAsync';
+import pick from '../../utils/pick';
 import { sendResponse } from '../../utils/sendResponse';
 import { DraftsService } from './drafts.service';
-import pick from '../../utils/pick';
-import { paginationFields } from '../../constants/pagination';
 
 const getDraftPosts = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
@@ -54,6 +54,7 @@ const getDraftPosts = catchAsync<CustomRequest>(
 const deleteMultipleDraftPosts = catchAsync(
   async (req: CustomRequest, res: Response) => {
     const { postIds } = req.body as { postIds: string[] };
+    // console.log(postIds);
     const userId = req.user?.userId as string | undefined;
 
     if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
