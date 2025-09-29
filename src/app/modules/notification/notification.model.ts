@@ -13,7 +13,6 @@ const notificationSchema = new Schema<INotification>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'User ID is required'],
-      index: true,
     },
     type: {
       type: String,
@@ -56,7 +55,7 @@ const notificationSchema = new Schema<INotification>(
     expiresAt: {
       type: Date,
       default: () => new Date(Date.now() + NOTIFICATION_EXPIRY.DEFAULT_TTL),
-      index: { expireAfterSeconds: 0 }, // MongoDB TTL index
+      expires: 0, // MongoDB TTL index
     },
     readAt: {
       type: Date,

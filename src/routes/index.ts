@@ -2,7 +2,6 @@ import { Router } from 'express';
 
 import { AIRoutes } from '../app/modules/ai/ai.route';
 import { AuthRoute } from '../app/modules/auth/auth.route';
-import { CleanupRoutes } from '../app/modules/cleanup/cleanup.route';
 import { DashboardRoutes } from '../app/modules/dashboard/dashboard.route';
 import { ImageRoutes } from '../app/modules/image/image.route';
 import { MongoPdfRoutes } from '../app/modules/mongo-pdf/mongo-pdf.route';
@@ -10,12 +9,12 @@ import { MongoPostRoutes } from '../app/modules/mongo-posts/mongo-posts.route';
 import { NotificationRoutes } from '../app/modules/notification/notification.route';
 import { OAuthRoutes } from '../app/modules/oauth/oauth.route';
 import { ScheduleRoutes } from '../app/modules/schedule/schedule.route';
+import { SearchRoutes } from '../app/modules/search/search.route';
 import { SettingsRoutes } from '../app/modules/settings/settings.route';
-import { SocialMediaRoutes } from '../app/modules/social-media/social-media.route';
 import { OAuthRoutes as SocialMediaOAuthRoutes } from '../app/modules/social-media/oauth.route';
+import { SocialMediaRoutes } from '../app/modules/social-media/social-media.route';
 import { UserRoutes } from '../app/modules/user/user.route';
 import { VideoRoutes } from '../app/modules/video/video.route';
-import { SearchRoutes } from '../app/modules/search/search.route';
 
 const router = Router();
 
@@ -68,10 +67,7 @@ const moduleRoutes = [
     path: '/videos',
     route: VideoRoutes,
   },
-  {
-    path: '/cleanup',
-    route: CleanupRoutes,
-  },
+
   {
     path: '/oauth',
     route: OAuthRoutes,

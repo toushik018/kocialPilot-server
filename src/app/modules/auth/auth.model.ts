@@ -161,7 +161,6 @@ userSchema.virtual('name').get(function () {
 });
 
 // Indexes
-userSchema.index({ email: 1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({
   'socialAccounts.platform': 1,
