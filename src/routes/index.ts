@@ -8,6 +8,7 @@ import { MongoPdfRoutes } from '../app/modules/mongo-pdf/mongo-pdf.route';
 import { MongoPostRoutes } from '../app/modules/mongo-posts/mongo-posts.route';
 import { NotificationRoutes } from '../app/modules/notification/notification.route';
 import { OAuthRoutes } from '../app/modules/oauth/oauth.route';
+import { RecentDeleteRoutes } from '../app/modules/recent-delete/recent-delete.route';
 import { ScheduleRoutes } from '../app/modules/schedule/schedule.route';
 import { SearchRoutes } from '../app/modules/search/search.route';
 import { SettingsRoutes } from '../app/modules/settings/settings.route';
@@ -30,6 +31,10 @@ const moduleRoutes = [
   {
     path: '/mongo-posts',
     route: MongoPostRoutes,
+  },
+  {
+    path: '/recent-delete',
+    route: RecentDeleteRoutes,
   },
   {
     path: '/notifications',
