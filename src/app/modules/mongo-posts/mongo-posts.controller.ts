@@ -1,5 +1,4 @@
 import { Response } from 'express';
-import type { Express } from 'express';
 import httpStatus from 'http-status';
 import { paginationFields } from '../../constants/pagination';
 import { CustomRequest } from '../../interface/types';
@@ -12,7 +11,7 @@ import { Post } from './mongo-posts.model';
 import { MongoPostService } from './mongo-posts.service';
 
 interface RequestWithFile extends CustomRequest {
-  file?: Express.Multer.File;
+  file?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 interface CalendarData {
@@ -38,48 +37,48 @@ interface CalendarData {
 
 const createPost = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
-      const userId = req.user?.userId;
-      const userEmail = req.user?.email;
-      const username = req.user?.username || userEmail?.split('@')[0] || '';
+    const userId = req.user?.userId;
+    const userEmail = req.user?.email;
+    const username = req.user?.username || userEmail?.split('@')[0] || '';
 
-      if (!userId || !userEmail) {
+    if (!userId || !userEmail) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'User authentication required',
+      });
+    }
+
+    const postData = req.body as IMongoPost;
+    const postWithUserData = {
+      ...postData,
+      user_id: userId,
+      email: userEmail,
+      username,
+    };
+
+    // Validate image URL format to prevent duplicates from AI upload
+    if (postData.image_url) {
+      // Check if this is an invalid local path format for Cloudinary images
+      if (
+        postData.image_url.startsWith('/uploads/') &&
+        !postData.image_url.includes('/images/')
+      ) {
         return sendResponse(res, {
-          statusCode: httpStatus.UNAUTHORIZED,
+          statusCode: httpStatus.CONFLICT,
           success: false,
-          message: 'User authentication required',
+          message: 'Post already created through AI upload process',
         });
       }
+    }
+    const result = await MongoPostService.createPost(postWithUserData);
 
-      const postData = req.body as IMongoPost;
-      const postWithUserData = {
-        ...postData,
-        user_id: userId,
-        email: userEmail,
-        username,
-      };
-
-      // Validate image URL format to prevent duplicates from AI upload
-      if (postData.image_url) {
-        // Check if this is an invalid local path format for Cloudinary images
-        if (
-          postData.image_url.startsWith('/uploads/') &&
-          !postData.image_url.includes('/images/')
-        ) {
-          return sendResponse(res, {
-            statusCode: httpStatus.CONFLICT,
-            success: false,
-            message: 'Post already created through AI upload process',
-          });
-        }
-      }
-      const result = await MongoPostService.createPost(postWithUserData);
-
-      sendResponse<IMongoPost>(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Post created successfully',
-        data: result,
-      });
+    sendResponse<IMongoPost>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Post created successfully',
+      data: result,
+    });
   }
 );
 

@@ -194,7 +194,10 @@ const deleteImage = async (
           await cloudinary.uploader.destroy(image.cloudinary_public_id);
         } catch (cloudinaryError) {
           appLogger.warn('Failed to delete image from Cloudinary', {
-            error: cloudinaryError instanceof Error ? cloudinaryError.message : cloudinaryError,
+            error:
+              cloudinaryError instanceof Error
+                ? cloudinaryError.message
+                : cloudinaryError,
             publicId: image.cloudinary_public_id,
           });
           // Continue execution even if Cloudinary deletion fails
