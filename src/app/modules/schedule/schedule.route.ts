@@ -26,17 +26,9 @@ router.get(
   ScheduleController.getOptimalScheduleTime
 );
 
-router.patch(
-  '/:id/reschedule',
-  auth(),
-  ScheduleController.reschedulePost
-);
+router.patch('/:id/reschedule', auth(), ScheduleController.reschedulePost);
 
-router.post(
-  '/schedule-drafts',
-  auth(),
-  ScheduleController.scheduleDraftPosts
-);
+router.post('/schedule-drafts', auth(), ScheduleController.scheduleDraftPosts);
 
 router.post(
   '/schedule-single/:id',

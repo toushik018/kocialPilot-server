@@ -182,9 +182,11 @@ export const ScheduleController = {
       // Reuse MongoPostService logic to compute next time
       const userSchedule = await MongoPostService.getUserSchedule(userId);
 
-      const latestPost = await (await import('../mongo-posts/mongo-posts.model'))
-        .Post.findOne({ user_id: userId, status: 'scheduled' })
-        .sort({ scheduled_date: -1 });
+      const latestPost = await (
+        await import('../mongo-posts/mongo-posts.model')
+      ).Post.findOne({ user_id: userId, status: 'scheduled' }).sort({
+        scheduled_date: -1,
+      });
 
       let scheduledDate = new Date();
       let scheduledTime = '09:00';

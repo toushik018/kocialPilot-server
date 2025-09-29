@@ -1,3 +1,35 @@
-import { IMongoPostFilters } from '../mongo-posts/mongo-posts.interface';
+import { Model, Types } from 'mongoose';
 
-export type IRecentDeleteFilters = IMongoPostFilters;
+export type IRecentDeletePost = {
+  _id?: Types.ObjectId;
+  user_id: string;
+  username?: string;
+  email?: string;
+  image_url?: string;
+  image_path?: string;
+  video_url?: string;
+  video_path?: string;
+  caption: string;
+  hashtags?: string[];
+  alt_text?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata?: any;
+  scheduled_date?: Date;
+  scheduled_time?: string;
+  status: 'draft' | 'published' | 'scheduled';
+  platform?: 'facebook' | 'instagram' | 'twitter' | 'linkedin';
+  auto_scheduled?: boolean;
+  isDeleted?: boolean;
+  deletedAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+export type RecentDeletePostModel = Model<IRecentDeletePost>;
+
+export type IRecentDeleteFilters = {
+  searchTerm?: string;
+  title?: string;
+  status?: string;
+  platform?: 'facebook' | 'instagram' | 'twitter' | 'linkedin';
+};

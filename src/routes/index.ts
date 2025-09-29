@@ -16,6 +16,8 @@ import { OAuthRoutes as SocialMediaOAuthRoutes } from '../app/modules/social-med
 import { SocialMediaRoutes } from '../app/modules/social-media/social-media.route';
 import { UserRoutes } from '../app/modules/user/user.route';
 import { VideoRoutes } from '../app/modules/video/video.route';
+import { DraftsRoutes } from '../app/modules/drafts/drafts.route';
+import { CalendarRoutes } from '../app/modules/calendar/calendar.route';
 
 const router = Router();
 
@@ -31,6 +33,10 @@ const moduleRoutes = [
   {
     path: '/mongo-posts',
     route: MongoPostRoutes,
+  },
+  {
+    path: '/drafts',
+    route: DraftsRoutes,
   },
   {
     path: '/recent-delete',
@@ -71,6 +77,10 @@ const moduleRoutes = [
   {
     path: '/videos',
     route: VideoRoutes,
+  },
+  {
+    path: '/calendar',
+    route: CalendarRoutes,
   },
 
   {

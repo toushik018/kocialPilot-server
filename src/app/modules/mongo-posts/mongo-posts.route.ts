@@ -19,21 +19,11 @@ router.post(
 
 // Scheduling routes moved to schedule module
 
-// Get posts by specific date
-router.get('/by-date/:date', MongoPostController.getPostsByDate);
-
-// Calendar routes
-router.get('/calendar/:year/:month', MongoPostController.getCalendarPosts);
+// Calendar routes moved to calendar module
 
 router.get('/all', MongoPostController.getAllPosts);
 
-router.get('/drafts', MongoPostController.getDraftPosts);
-
-// Delete multiple draft posts
-router.delete('/drafts', auth(), MongoPostController.deleteMultipleDraftPosts);
-
-// Delete single draft post
-router.delete('/drafts/:id', auth(), MongoPostController.deleteSingleDraftPost);
+// Drafts routes moved to drafts module
 
 router.get('/:id', MongoPostController.getPostById);
 
