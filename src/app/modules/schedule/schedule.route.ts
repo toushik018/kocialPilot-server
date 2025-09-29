@@ -19,4 +19,21 @@ router.patch('/:id', auth(), ScheduleController.updateSchedule);
 // Delete a schedule
 router.delete('/:id', auth(), ScheduleController.deleteSchedule);
 
+// Post scheduling related (moved from mongo-posts)
+router.get(
+  '/optimal-schedule-time',
+  auth(),
+  ScheduleController.getOptimalScheduleTime
+);
+
+router.patch('/:id/reschedule', auth(), ScheduleController.reschedulePost);
+
+router.post('/schedule-drafts', auth(), ScheduleController.scheduleDraftPosts);
+
+router.post(
+  '/schedule-single/:id',
+  auth(),
+  ScheduleController.scheduleSingleDraftPost
+);
+
 export const ScheduleRoutes = router;

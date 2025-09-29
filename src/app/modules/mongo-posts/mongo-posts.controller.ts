@@ -1,19 +1,17 @@
 import { Response } from 'express';
 import httpStatus from 'http-status';
 import { paginationFields } from '../../constants/pagination';
+import { CustomRequest } from '../../interface/types';
 import { catchAsync } from '../../utils/catchAsync';
 import pick from '../../utils/pick';
 import { sendResponse } from '../../utils/sendResponse';
+import { VideoService } from '../video/video.service';
 import { IMongoPost } from './mongo-posts.interface';
 import { Post } from './mongo-posts.model';
 import { MongoPostService } from './mongo-posts.service';
-import { VideoService } from '../video/video.service';
-import { CustomRequest } from '../../interface/types';
-
-import { Express } from 'express';
 
 interface RequestWithFile extends CustomRequest {
-  file?: Express.Multer.File;
+  file?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 interface CalendarData {
@@ -39,70 +37,48 @@ interface CalendarData {
 
 const createPost = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
-    try {
-      console.log('📝 Creating post with data:', req.body);
-      console.log('👤 User info:', {
-        userId: req.user?.userId,
-        email: req.user?.email,
-        username: req.user?.username,
+    const userId = req.user?.userId;
+    const userEmail = req.user?.email;
+    const username = req.user?.username || userEmail?.split('@')[0] || '';
+
+    if (!userId || !userEmail) {
+      return sendResponse(res, {
+        statusCode: httpStatus.UNAUTHORIZED,
+        success: false,
+        message: 'User authentication required',
       });
+    }
 
-      const postData = req.body as IMongoPost;
+    const postData = req.body as IMongoPost;
+    const postWithUserData = {
+      ...postData,
+      user_id: userId,
+      email: userEmail,
+      username,
+    };
 
-      // Validate image URL format to prevent duplicates from AI upload
-      if (postData.image_url) {
-        // Check if this is an invalid local path format for Cloudinary images
-        if (
-          postData.image_url.startsWith('/uploads/') &&
-          !postData.image_url.includes('/images/')
-        ) {
-          console.log(
-            '🚫 Detected invalid image URL format, likely from AI upload. Skipping duplicate post creation.'
-          );
-          return sendResponse(res, {
-            statusCode: httpStatus.CONFLICT,
-            success: false,
-            message: 'Post already created through AI upload process',
-          });
-        }
-      }
-
-      // Get user info from auth middleware
-      const userId = req.user?.userId;
-      const userEmail = req.user?.email;
-      const username = req.user?.username || userEmail?.split('@')[0] || '';
-
-      if (!userId || !userEmail) {
-        console.error('❌ User authentication failed');
+    // Validate image URL format to prevent duplicates from AI upload
+    if (postData.image_url) {
+      // Check if this is an invalid local path format for Cloudinary images
+      if (
+        postData.image_url.startsWith('/uploads/') &&
+        !postData.image_url.includes('/images/')
+      ) {
         return sendResponse(res, {
-          statusCode: httpStatus.UNAUTHORIZED,
+          statusCode: httpStatus.CONFLICT,
           success: false,
-          message: 'User authentication required',
+          message: 'Post already created through AI upload process',
         });
       }
-
-      // Add user info to post data
-      const postWithUserData = {
-        ...postData,
-        user_id: userId,
-        email: userEmail,
-        username: username,
-      };
-
-      console.log('🚀 Creating post with final data:', postWithUserData);
-      const result = await MongoPostService.createPost(postWithUserData);
-      console.log('✅ Post created successfully:', result._id);
-
-      sendResponse<IMongoPost>(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Post created successfully',
-        data: result,
-      });
-    } catch (error) {
-      console.error('❌ Error in createPost controller:', error);
-      throw error; // Re-throw to be handled by catchAsync
     }
+    const result = await MongoPostService.createPost(postWithUserData);
+
+    sendResponse<IMongoPost>(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Post created successfully',
+      data: result,
+    });
   }
 );
 
@@ -317,7 +293,8 @@ const getDraftPosts = catchAsync<CustomRequest>(
 const getPostById = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
     const id = req.params.id;
-    const result = await MongoPostService.getPostById(id);
+    const userId = req.user?.userId || '';
+    const result = await MongoPostService.getPostById(id, userId);
 
     if (!result) {
       return sendResponse(res, {
@@ -340,8 +317,9 @@ const updatePost = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
     const id = req.params.id;
     const updatedData = req.body as Partial<IMongoPost>;
+    const userId = req.user?.userId || '';
 
-    const result = await MongoPostService.updatePost(id, updatedData);
+    const result = await MongoPostService.updatePost(id, updatedData, userId);
 
     if (!result) {
       return sendResponse(res, {
@@ -363,8 +341,9 @@ const updatePost = catchAsync<CustomRequest>(
 const deletePost = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
     const id = req.params.id;
+    const userId = req.user?.userId || '';
 
-    const result = await MongoPostService.deletePost(id);
+    const result = await MongoPostService.deletePost(id, userId);
 
     if (!result) {
       return sendResponse(res, {
@@ -653,11 +632,15 @@ const reschedulePost = catchAsync<CustomRequest>(
       }
 
       // Update the post with new schedule information
-      const result = await MongoPostService.updatePost(id, {
-        scheduled_date: new Date(scheduled_date),
-        scheduled_time,
-        status: 'scheduled',
-      });
+      const result = await MongoPostService.updatePost(
+        id,
+        {
+          scheduled_date: new Date(scheduled_date),
+          scheduled_time,
+          status: 'scheduled',
+        },
+        req.user?.userId || ''
+      );
 
       if (!result) {
         return sendResponse(res, {
@@ -712,11 +695,15 @@ const scheduleDraftPosts = catchAsync(
 
       for (const id of postIds) {
         try {
-          const result = await MongoPostService.updatePost(id, {
-            scheduled_date: new Date(scheduled_date),
-            scheduled_time,
-            status: 'scheduled',
-          });
+          const result = await MongoPostService.updatePost(
+            id,
+            {
+              scheduled_date: new Date(scheduled_date),
+              scheduled_time,
+              status: 'scheduled',
+            },
+            req.user?.userId || ''
+          );
 
           if (result) {
             updatedPosts.push(result);
@@ -768,11 +755,15 @@ const scheduleSingleDraftPost = catchAsync(
       }
 
       // Update the post
-      const result = await MongoPostService.updatePost(id, {
-        scheduled_date: new Date(scheduled_date),
-        scheduled_time,
-        status: 'scheduled',
-      });
+      const result = await MongoPostService.updatePost(
+        id,
+        {
+          scheduled_date: new Date(scheduled_date),
+          scheduled_time,
+          status: 'scheduled',
+        },
+        req.user?.userId || ''
+      );
 
       if (!result) {
         return sendResponse(res, {
@@ -819,7 +810,10 @@ const deleteMultipleDraftPosts = catchAsync(
 
       for (const id of postIds) {
         try {
-          const result = await MongoPostService.deletePost(id);
+          const result = await MongoPostService.deletePost(
+            id,
+            req.user?.userId || ''
+          );
 
           if (result) {
             deletedPosts.push(result);
@@ -860,7 +854,10 @@ const deleteSingleDraftPost = catchAsync(
 
     try {
       // Delete the post
-      const result = await MongoPostService.deletePost(id);
+      const result = await MongoPostService.deletePost(
+        id,
+        req.user?.userId || ''
+      );
 
       if (!result) {
         return sendResponse(res, {

@@ -21,23 +21,34 @@ const getAllDocuments = async (userId?: string): Promise<IMongoPdf[]> => {
   return result;
 };
 
-const getDocumentById = async (id: string): Promise<IMongoPdf | null> => {
-  const result = await MongoPdf.findById(id);
+const getDocumentById = async (
+  id: string,
+  userId: string
+): Promise<IMongoPdf | null> => {
+  const result = await MongoPdf.findOne({ _id: id, owner: userId });
   return result;
 };
 
 const updateDocument = async (
   id: string,
-  payload: Partial<IMongoPdf>
+  payload: Partial<IMongoPdf>,
+  userId: string
 ): Promise<IMongoPdf | null> => {
-  const result = await MongoPdf.findOneAndUpdate({ _id: id }, payload, {
-    new: true,
-  });
+  const result = await MongoPdf.findOneAndUpdate(
+    { _id: id, owner: userId },
+    payload,
+    {
+      new: true,
+    }
+  );
   return result;
 };
 
-const deleteDocument = async (id: string): Promise<IMongoPdf | null> => {
-  const document = await MongoPdf.findById(id);
+const deleteDocument = async (
+  id: string,
+  userId: string
+): Promise<IMongoPdf | null> => {
+  const document = await MongoPdf.findOne({ _id: id, owner: userId });
   if (document && document.fileUrl) {
     // Extract public_id from Cloudinary URL for deletion
     const urlParts = document.fileUrl.split('/');
@@ -51,8 +62,8 @@ const deleteDocument = async (id: string): Promise<IMongoPdf | null> => {
     }
   }
 
-  const result = await MongoPdf.findByIdAndUpdate(
-    id,
+  const result = await MongoPdf.findOneAndUpdate(
+    { _id: id, owner: userId },
     { isDeleted: true, deletedAt: new Date() },
     { new: true }
   );

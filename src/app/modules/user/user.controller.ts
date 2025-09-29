@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import httpStatus from 'http-status';
 import { catchAsync } from '../../utils/catchAsync';
 import { sendResponse } from '../../utils/sendResponse';
@@ -8,8 +8,30 @@ import {
   IUserStats,
 } from './user.interface';
 import { UserService } from './user.service';
+import { AuthRequest } from '../auth/auth.interface';
 
-const updateProfile = catchAsync(async (req: Request, res: Response) => {
+const ensureAuthorized = (req: AuthRequest, userId: string) => {
+  const authUser = req.user;
+  if (!authUser) {
+    return {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    } as const;
+  }
+
+  if (authUser.role === 'admin' || authUser.userId === userId) {
+    return null;
+  }
+
+  return {
+    statusCode: httpStatus.FORBIDDEN,
+    success: false,
+    message: 'You do not have permission to access this resource',
+  } as const;
+};
+
+const updateProfile = catchAsync(async (req: AuthRequest, res: Response) => {
   const userId = req.params.userId;
   const updateData: IUserProfileUpdate = req.body;
   const ipAddress = req.ip || req.connection.remoteAddress;
@@ -21,6 +43,11 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
       success: false,
       message: 'User ID is required',
     });
+  }
+
+  const authorizationError = ensureAuthorized(req, userId);
+  if (authorizationError) {
+    return sendResponse(res, authorizationError);
   }
 
   const result = await UserService.updateUserProfile(
@@ -38,7 +65,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const changePassword = catchAsync(async (req: Request, res: Response) => {
+const changePassword = catchAsync(async (req: AuthRequest, res: Response) => {
   const userId = req.params.userId;
   const passwordData: IPasswordChange = req.body;
   const ipAddress = req.ip || req.connection.remoteAddress;
@@ -50,6 +77,11 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
       success: false,
       message: 'User ID is required',
     });
+  }
+
+  const authorizationError = ensureAuthorized(req, userId);
+  if (authorizationError) {
+    return sendResponse(res, authorizationError);
   }
 
   const result = await UserService.changePassword(
@@ -66,7 +98,7 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getUserProfile = catchAsync(async (req: Request, res: Response) => {
+const getUserProfile = catchAsync(async (req: AuthRequest, res: Response) => {
   const userId = req.params.userId;
 
   if (!userId) {
@@ -75,6 +107,11 @@ const getUserProfile = catchAsync(async (req: Request, res: Response) => {
       success: false,
       message: 'User ID is required',
     });
+  }
+
+  const authorizationError = ensureAuthorized(req, userId);
+  if (authorizationError) {
+    return sendResponse(res, authorizationError);
   }
 
   const result = await UserService.getUserProfile(userId);
@@ -87,7 +124,7 @@ const getUserProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getUserStats = catchAsync(async (req: Request, res: Response) => {
+const getUserStats = catchAsync(async (req: AuthRequest, res: Response) => {
   const userId = req.params.userId;
 
   if (!userId) {
@@ -96,6 +133,11 @@ const getUserStats = catchAsync(async (req: Request, res: Response) => {
       success: false,
       message: 'User ID is required',
     });
+  }
+
+  const authorizationError = ensureAuthorized(req, userId);
+  if (authorizationError) {
+    return sendResponse(res, authorizationError);
   }
 
   const result: IUserStats = await UserService.getUserStats(userId);
@@ -108,7 +150,7 @@ const getUserStats = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getUserActivity = catchAsync(async (req: Request, res: Response) => {
+const getUserActivity = catchAsync(async (req: AuthRequest, res: Response) => {
   const userId = req.params.userId;
   const limit = parseInt(req.query.limit as string) || 10;
 
@@ -118,6 +160,11 @@ const getUserActivity = catchAsync(async (req: Request, res: Response) => {
       success: false,
       message: 'User ID is required',
     });
+  }
+
+  const authorizationError = ensureAuthorized(req, userId);
+  if (authorizationError) {
+    return sendResponse(res, authorizationError);
   }
 
   const result = await UserService.getUserActivity(userId, limit);
@@ -130,7 +177,7 @@ const getUserActivity = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const trackLogout = catchAsync(async (req: Request, res: Response) => {
+const trackLogout = catchAsync(async (req: AuthRequest, res: Response) => {
   const userId = req.params.userId;
   const ipAddress = req.ip || req.connection.remoteAddress;
   const userAgent = req.get('User-Agent');
@@ -141,6 +188,11 @@ const trackLogout = catchAsync(async (req: Request, res: Response) => {
       success: false,
       message: 'User ID is required',
     });
+  }
+
+  const authorizationError = ensureAuthorized(req, userId);
+  if (authorizationError) {
+    return sendResponse(res, authorizationError);
   }
 
   await UserService.trackLogout(userId, ipAddress, userAgent);

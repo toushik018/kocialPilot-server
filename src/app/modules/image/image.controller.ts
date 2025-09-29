@@ -61,7 +61,10 @@ const getAllImages = catchAsync<CustomRequest>(
 const getImageById = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
     const { id } = req.params;
-    const result = await ImageService.getImageById(id);
+    const result = await ImageService.getImageById(
+      id,
+      req.user?.userId as string
+    );
 
     if (!result) {
       return res.status(httpStatus.NOT_FOUND).json({
@@ -82,7 +85,10 @@ const getImageById = catchAsync<CustomRequest>(
 const deleteImage = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
     const { id } = req.params;
-    const result = await ImageService.deleteImage(id);
+    const result = await ImageService.deleteImage(
+      id,
+      req.user?.userId as string
+    );
 
     if (!result) {
       return res.status(httpStatus.NOT_FOUND).json({

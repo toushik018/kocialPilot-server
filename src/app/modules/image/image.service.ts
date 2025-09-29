@@ -3,6 +3,7 @@ import { MongoError } from 'mongodb';
 import path from 'path';
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
+import { appLogger } from '../../utils/logger';
 import { cloudinary } from '../../middlewares/multer';
 import { IImage } from './image.interface';
 import { Image } from './image.model';
@@ -148,9 +149,12 @@ const getAllImages = async (userId: string): Promise<IImage[]> => {
   }
 };
 
-const getImageById = async (id: string): Promise<IImage | null> => {
+const getImageById = async (
+  id: string,
+  userId: string
+): Promise<IImage | null> => {
   try {
-    const image = await Image.findById(id);
+    const image = await Image.findOne({ _id: id, user_id: userId });
     return image;
   } catch (error) {
     if (error instanceof Error) {
@@ -175,9 +179,12 @@ const updateImage = async (
   }
 };
 
-const deleteImage = async (id: string): Promise<IImage | null> => {
+const deleteImage = async (
+  id: string,
+  userId: string
+): Promise<IImage | null> => {
   try {
-    const image = await Image.findByIdAndDelete(id);
+    const image = await Image.findOneAndDelete({ _id: id, user_id: userId });
 
     // Delete file from storage if image record exists
     if (image) {
@@ -186,10 +193,13 @@ const deleteImage = async (id: string): Promise<IImage | null> => {
         try {
           await cloudinary.uploader.destroy(image.cloudinary_public_id);
         } catch (cloudinaryError) {
-          console.error(
-            'Failed to delete image from Cloudinary:',
-            cloudinaryError
-          );
+          appLogger.warn('Failed to delete image from Cloudinary', {
+            error:
+              cloudinaryError instanceof Error
+                ? cloudinaryError.message
+                : cloudinaryError,
+            publicId: image.cloudinary_public_id,
+          });
           // Continue execution even if Cloudinary deletion fails
         }
       } else {

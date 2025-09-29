@@ -7,7 +7,7 @@ async function main() {
   try {
     // Set up mongoose connection event listeners
     mongoose.connection.on('connected', () => {
-      console.log('\x1b[42m ✓ Database connected successfully!\x1b[0m');
+      console.log('\x1b[32m ✓ Database connected successfully!\x1b[0m');
     });
 
     mongoose.connection.on('error', (err) => {
@@ -25,7 +25,7 @@ async function main() {
     // Start the server
     app.listen(config.port, () => {
       console.log(
-        `\x1b[42m ✓ Kocial Pilot Backend listening on port ${config.port}\x1b[0m`
+        `\x1b[32m ✓ Kocial Pilot Backend listening on port ${config.port}\x1b[0m`
       );
       console.log(
         `\x1b[36m ✓ Server URL: http://localhost:${config.port}\x1b[0m`

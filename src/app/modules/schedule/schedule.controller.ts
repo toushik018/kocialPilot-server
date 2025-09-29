@@ -4,6 +4,7 @@ import { catchAsync } from '../../utils/catchAsync';
 import { sendResponse } from '../../utils/sendResponse';
 import { ISchedule } from './schedule.interface';
 import { ScheduleService } from './schedule.service';
+import { MongoPostService } from '../mongo-posts/mongo-posts.service';
 
 interface AuthRequest extends Request {
   user?: {
@@ -166,4 +167,199 @@ export const ScheduleController = {
   getAllUserSchedules,
   updateSchedule,
   deleteSchedule,
+  // Post scheduling related
+  getOptimalScheduleTime: catchAsync<AuthRequest>(
+    async (req: AuthRequest, res: Response) => {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return sendResponse(res, {
+          statusCode: httpStatus.UNAUTHORIZED,
+          success: false,
+          message: 'User authentication required',
+        });
+      }
+
+      // Reuse MongoPostService logic to compute next time
+      const userSchedule = await MongoPostService.getUserSchedule(userId);
+
+      const latestPost = await (
+        await import('../mongo-posts/mongo-posts.model')
+      ).Post.findOne({ user_id: userId, status: 'scheduled' }).sort({
+        scheduled_date: -1,
+      });
+
+      let scheduledDate = new Date();
+      let scheduledTime = '09:00';
+      if (userSchedule) {
+        scheduledTime = userSchedule.time;
+        if (latestPost && latestPost.scheduled_date) {
+          scheduledDate = new Date(latestPost.scheduled_date);
+          scheduledDate.setDate(scheduledDate.getDate() + 1);
+        } else {
+          scheduledDate.setDate(scheduledDate.getDate() + 1);
+        }
+      } else {
+        scheduledDate.setDate(scheduledDate.getDate() + 1);
+      }
+
+      scheduledDate.setHours(parseInt(scheduledTime.split(':')[0]) || 9);
+      scheduledDate.setMinutes(parseInt(scheduledTime.split(':')[1]) || 0);
+
+      sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Optimal schedule time calculated successfully',
+        data: {
+          scheduled_date: scheduledDate.toISOString().split('T')[0],
+          scheduled_time: scheduledTime,
+        },
+      });
+    }
+  ),
+  reschedulePost: catchAsync<AuthRequest>(
+    async (req: AuthRequest, res: Response) => {
+      const { id } = req.params;
+      const { scheduled_date, scheduled_time } = req.body as {
+        scheduled_date: string;
+        scheduled_time: string;
+      };
+
+      if (!scheduled_date || !scheduled_time) {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Scheduled date and time are required',
+        });
+      }
+
+      const result = await MongoPostService.updatePost(
+        id,
+        {
+          scheduled_date: new Date(scheduled_date),
+          scheduled_time,
+          status: 'scheduled',
+        },
+        req.user?.userId || ''
+      );
+
+      if (!result) {
+        return sendResponse(res, {
+          statusCode: httpStatus.NOT_FOUND,
+          success: false,
+          message: 'Post not found',
+        });
+      }
+
+      sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Post rescheduled successfully',
+        data: result,
+      });
+    }
+  ),
+  scheduleDraftPosts: catchAsync<AuthRequest>(
+    async (req: AuthRequest, res: Response) => {
+      const { postIds, scheduled_date, scheduled_time } = req.body as {
+        postIds: string[];
+        scheduled_date: string;
+        scheduled_time: string;
+      };
+
+      if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Post IDs are required',
+        });
+      }
+
+      if (!scheduled_date || !scheduled_time) {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Scheduled date and time are required',
+        });
+      }
+
+      const updatedPosts: unknown[] = [];
+      const errors: string[] = [];
+
+      for (const postId of postIds) {
+        try {
+          const updatedPost = await MongoPostService.updatePost(
+            postId,
+            {
+              scheduled_date: new Date(scheduled_date),
+              scheduled_time,
+              status: 'scheduled',
+            },
+            req.user?.userId || ''
+          );
+
+          if (updatedPost) {
+            updatedPosts.push(updatedPost);
+          } else {
+            errors.push(`Post with ID ${postId} not found`);
+          }
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Unknown error';
+          errors.push(`Error updating post ${postId}: ${message}`);
+        }
+      }
+
+      sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: `${updatedPosts.length} posts scheduled successfully`,
+        data: {
+          updatedPosts,
+          errors: errors.length > 0 ? errors : undefined,
+        },
+      });
+    }
+  ),
+  scheduleSingleDraftPost: catchAsync<AuthRequest>(
+    async (req: AuthRequest, res: Response) => {
+      const { id } = req.params;
+      const { scheduled_date, scheduled_time } = req.body as {
+        scheduled_date: string;
+        scheduled_time: string;
+      };
+
+      if (!scheduled_date || !scheduled_time) {
+        return sendResponse(res, {
+          statusCode: httpStatus.BAD_REQUEST,
+          success: false,
+          message: 'Scheduled date and time are required',
+        });
+      }
+
+      const result = await MongoPostService.updatePost(
+        id,
+        {
+          scheduled_date: new Date(scheduled_date),
+          scheduled_time,
+          status: 'scheduled',
+        },
+        req.user?.userId || ''
+      );
+
+      if (!result) {
+        return sendResponse(res, {
+          statusCode: httpStatus.NOT_FOUND,
+          success: false,
+          message: 'Post not found',
+        });
+      }
+
+      sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Post scheduled successfully',
+        data: result,
+      });
+    }
+  ),
 };

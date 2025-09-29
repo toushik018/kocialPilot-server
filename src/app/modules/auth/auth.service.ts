@@ -15,6 +15,10 @@ import {
 import { User } from './auth.model';
 import { createToken, validatePassword } from './auth.utils';
 
+const ACCESS_TOKEN_EXPIRES_IN = '1d';
+const REFRESH_TOKEN_EXPIRES_IN = '4h';
+const ACCESS_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 const createUser = async (
   payload: IRegisterRequest
 ): Promise<IAuthResponse> => {
@@ -67,13 +71,13 @@ const createUser = async (
   const accessToken = createToken(
     jwtPayload,
     config.jwt_access_secret as string,
-    config.jwt_access_expires_in as string
+    ACCESS_TOKEN_EXPIRES_IN
   );
 
   const refreshToken = createToken(
     jwtPayload,
     config.jwt_refresh_secret as string,
-    config.jwt_refresh_expires_in as string
+    REFRESH_TOKEN_EXPIRES_IN
   );
 
   // Update last login time
@@ -82,7 +86,7 @@ const createUser = async (
   });
 
   // Calculate token expiry time in milliseconds
-  const expiresAt = Date.now() + 4 * 60 * 60 * 1000; // 4 hours
+  const expiresAt = Date.now() + ACCESS_TOKEN_TTL_MS; // 24 hours
 
   return {
     user: {
@@ -144,17 +148,17 @@ const loginUser = async (payload: ILoginRequest): Promise<IAuthResponse> => {
   const accessToken = createToken(
     jwtPayload,
     config.jwt_access_secret as string,
-    config.jwt_access_expires_in as string
+    ACCESS_TOKEN_EXPIRES_IN
   );
 
   const refreshToken = createToken(
     jwtPayload,
     config.jwt_refresh_secret as string,
-    config.jwt_refresh_expires_in as string
+    REFRESH_TOKEN_EXPIRES_IN
   );
 
   // Calculate token expiry time in milliseconds
-  const expiresAt = Date.now() + 4 * 60 * 60 * 1000; // 4 hours
+  const expiresAt = Date.now() + ACCESS_TOKEN_TTL_MS; // 24 hours
 
   return {
     user: {
@@ -230,18 +234,18 @@ const refreshToken = async (
   const newAccessToken = createToken(
     jwtPayload,
     config.jwt_access_secret as string,
-    config.jwt_access_expires_in as string
+    ACCESS_TOKEN_EXPIRES_IN
   );
 
   // Generate new refresh token for enhanced security (token rotation)
   const newRefreshToken = createToken(
     jwtPayload,
     config.jwt_refresh_secret as string,
-    config.jwt_refresh_expires_in as string
+    REFRESH_TOKEN_EXPIRES_IN
   );
 
   // Calculate token expiry time in milliseconds
-  const expiryTime = Date.now() + 4 * 60 * 60 * 1000; // 4 hours
+  const expiryTime = Date.now() + ACCESS_TOKEN_TTL_MS; // 24 hours
 
   return {
     accessToken: newAccessToken,

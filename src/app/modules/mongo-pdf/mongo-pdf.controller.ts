@@ -13,8 +13,21 @@ interface AuthenticatedRequest extends Request {
 }
 
 const createDocument = catchAsync(async (req: Request, res: Response) => {
+  const authUserId = (req as AuthenticatedRequest).user?.userId;
+  if (!authUserId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.UNAUTHORIZED,
+      success: false,
+      message: 'User authentication required',
+    });
+  }
   const { ...documentData } = req.body;
-  const result = await MongoPdfService.createDocument(documentData);
+  // Force owner to authenticated user
+  const payload = {
+    ...documentData,
+    owner: authUserId,
+  } as unknown as IMongoPdf;
+  const result = await MongoPdfService.createDocument(payload);
 
   sendResponse<IMongoPdf>(res, {
     statusCode: httpStatus.OK,
@@ -40,7 +53,8 @@ const getAllDocuments = catchAsync(
 
 const getDocumentById = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
-  const result = await MongoPdfService.getDocumentById(id);
+  const authUserId = (req as AuthenticatedRequest).user?.userId || '';
+  const result = await MongoPdfService.getDocumentById(id, authUserId);
 
   sendResponse<IMongoPdf>(res, {
     statusCode: httpStatus.OK,
@@ -53,8 +67,13 @@ const getDocumentById = catchAsync(async (req: Request, res: Response) => {
 const updateDocument = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
   const updatedData = req.body;
+  const authUserId = (req as AuthenticatedRequest).user?.userId || '';
 
-  const result = await MongoPdfService.updateDocument(id, updatedData);
+  const result = await MongoPdfService.updateDocument(
+    id,
+    updatedData,
+    authUserId
+  );
 
   sendResponse<IMongoPdf>(res, {
     statusCode: httpStatus.OK,
@@ -66,8 +85,9 @@ const updateDocument = catchAsync(async (req: Request, res: Response) => {
 
 const deleteDocument = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
+  const authUserId = (req as AuthenticatedRequest).user?.userId || '';
 
-  const result = await MongoPdfService.deleteDocument(id);
+  const result = await MongoPdfService.deleteDocument(id, authUserId);
 
   sendResponse<IMongoPdf>(res, {
     statusCode: httpStatus.OK,
@@ -116,6 +136,15 @@ const analyzeDocument = catchAsync(
 
 const getUserDocuments = catchAsync(async (req: Request, res: Response) => {
   const userId = req.params.userId;
+  const authUserId = (req as AuthenticatedRequest).user?.userId;
+
+  if (!authUserId || authUserId !== userId) {
+    return sendResponse(res, {
+      statusCode: httpStatus.FORBIDDEN,
+      success: false,
+      message: 'Forbidden',
+    });
+  }
 
   if (!userId) {
     return sendResponse(res, {
@@ -138,6 +167,15 @@ const getUserDocuments = catchAsync(async (req: Request, res: Response) => {
 const getRecentlyDeletedDocuments = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.params.userId;
+    const authUserId = (req as AuthenticatedRequest).user?.userId;
+
+    if (!authUserId || authUserId !== userId) {
+      return sendResponse(res, {
+        statusCode: httpStatus.FORBIDDEN,
+        success: false,
+        message: 'Forbidden',
+      });
+    }
 
     if (!userId) {
       return sendResponse(res, {

@@ -17,71 +17,17 @@ router.post(
   MongoPostController.uploadImagePost
 );
 
-// Get optimal schedule time
-router.get(
-  '/optimal-schedule-time',
-  MongoPostController.getOptimalScheduleTime
-);
+// Scheduling routes moved to schedule module
 
-// Reschedule a post
-router.patch('/:id/reschedule', auth(), MongoPostController.reschedulePost);
+// Calendar routes moved to calendar module
 
-// Schedule multiple draft posts
-router.post('/schedule-drafts', auth(), MongoPostController.scheduleDraftPosts);
+router.get('/all', auth(), MongoPostController.getAllPosts);
 
-// Schedule single draft post
-router.post(
-  '/schedule-single/:id',
-  auth(),
-  MongoPostController.scheduleSingleDraftPost
-);
+// Drafts routes moved to drafts module
 
-// Get posts by specific date
-router.get('/by-date/:date', MongoPostController.getPostsByDate);
+router.get('/:id', auth(), MongoPostController.getPostById);
 
-// Calendar routes
-router.get('/calendar/:year/:month', MongoPostController.getCalendarPosts);
-
-router.get('/all', MongoPostController.getAllPosts);
-
-router.get('/drafts', MongoPostController.getDraftPosts);
-
-// Delete multiple draft posts
-router.delete('/drafts', auth(), MongoPostController.deleteMultipleDraftPosts);
-
-// Delete single draft post
-router.delete('/drafts/:id', auth(), MongoPostController.deleteSingleDraftPost);
-
-// Recent delete routes
-router.get(
-  '/recent-delete',
-  auth(),
-  MongoPostController.getRecentlyDeletedPosts
-);
-router.patch(
-  '/recent-delete/:id/restore',
-  auth(),
-  MongoPostController.restorePost
-);
-router.delete(
-  '/recent-delete/:id/permanent',
-  auth(),
-  MongoPostController.permanentlyDeletePost
-);
-router.patch(
-  '/recent-delete/restore-multiple',
-  auth(),
-  MongoPostController.restoreMultiplePosts
-);
-router.delete(
-  '/recent-delete/permanent-multiple',
-  auth(),
-  MongoPostController.permanentlyDeleteMultiplePosts
-);
-
-router.get('/:id', MongoPostController.getPostById);
-
-router.patch('/:id', MongoPostController.updatePost);
+router.patch('/:id', auth(), MongoPostController.updatePost);
 
 router.delete('/:id', auth(), MongoPostController.deletePost);
 

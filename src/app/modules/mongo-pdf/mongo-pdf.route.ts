@@ -27,11 +27,11 @@ router.post(
   MongoPdfController.analyzeDocument
 );
 
-router.post('/', MongoPdfController.createDocument);
+router.post('/', auth(), MongoPdfController.createDocument);
 
 router.get('/documents', auth(), MongoPdfController.getAllDocuments);
 
-router.get('/user/:userId', MongoPdfController.getUserDocuments);
+router.get('/user/:userId', auth(), MongoPdfController.getUserDocuments);
 
 // Recent delete routes
 router.get(
@@ -50,10 +50,10 @@ router.delete(
   MongoPdfController.permanentlyDeleteDocument
 );
 
-router.get('/:id', MongoPdfController.getDocumentById);
+router.get('/:id', auth(), MongoPdfController.getDocumentById);
 
-router.patch('/:id', MongoPdfController.updateDocument);
+router.patch('/:id', auth(), MongoPdfController.updateDocument);
 
-router.delete('/:id', MongoPdfController.deleteDocument);
+router.delete('/:id', auth(), MongoPdfController.deleteDocument);
 
 export const MongoPdfRoutes = router;

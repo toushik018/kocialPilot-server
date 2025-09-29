@@ -407,10 +407,14 @@ const getDraftPosts = async (): Promise<IMongoPost[]> => {
   }
 };
 
-const getPostById = async (id: string): Promise<IMongoPost | null> => {
+const getPostById = async (
+  id: string,
+  userId: string
+): Promise<IMongoPost | null> => {
   try {
     const result = await Post.findOne({
       _id: id,
+      user_id: userId,
       isDeleted: { $ne: true },
     });
     return result;
@@ -421,14 +425,15 @@ const getPostById = async (id: string): Promise<IMongoPost | null> => {
 
 const updatePost = async (
   id: string,
-  payload: Partial<IMongoPost>
+  payload: Partial<IMongoPost>,
+  userId: string
 ): Promise<IMongoPost | null> => {
   try {
     // Convert string ID to ObjectId if needed
     const objectId = Types.ObjectId.isValid(id) ? new Types.ObjectId(id) : id;
 
     const result = await Post.findOneAndUpdate(
-      { _id: objectId, isDeleted: { $ne: true } },
+      { _id: objectId, user_id: userId, isDeleted: { $ne: true } },
       payload,
       { new: true }
     );
@@ -439,10 +444,13 @@ const updatePost = async (
   }
 };
 
-const deletePost = async (id: string): Promise<IMongoPost | null> => {
+const deletePost = async (
+  id: string,
+  userId: string
+): Promise<IMongoPost | null> => {
   try {
     // First get the post to check for Cloudinary assets
-    const post = await Post.findById(id);
+    const post = await Post.findOne({ _id: id, user_id: userId });
     if (!post) {
       return null;
     }
@@ -482,8 +490,8 @@ const deletePost = async (id: string): Promise<IMongoPost | null> => {
     }
 
     // Perform soft delete by setting isDeleted to true and deletedAt timestamp
-    const result = await Post.findByIdAndUpdate(
-      id,
+    const result = await Post.findOneAndUpdate(
+      { _id: id, user_id: userId },
       { isDeleted: true, deletedAt: new Date() },
       { new: true }
     );
