@@ -11,7 +11,12 @@ import { IMongoPost } from '../mongo-posts/mongo-posts.interface';
 
 const getRecentlyDeletedPosts = catchAsync<CustomRequest>(
   async (req: CustomRequest, res: Response) => {
-    const filters = pick(req.query, ['searchTerm', 'title', 'status', 'platform']);
+    const filters = pick(req.query, [
+      'searchTerm',
+      'title',
+      'status',
+      'platform',
+    ]);
     const paginationOptions = pick(req.query, paginationFields);
     const userId = req.user?.userId;
 
@@ -81,12 +86,13 @@ const restoreMultiplePosts = catchAsync<CustomRequest>(
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: parsed.error.errors.map(e => e.message).join(', '),
+        message: parsed.error.errors.map((e) => e.message).join(', '),
       });
     }
 
     const { postIds } = parsed.data;
-    const restoredPosts = await RecentDeleteService.restoreMultiplePosts(postIds);
+    const restoredPosts =
+      await RecentDeleteService.restoreMultiplePosts(postIds);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -104,12 +110,13 @@ const permanentlyDeleteMultiplePosts = catchAsync<CustomRequest>(
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: parsed.error.errors.map(e => e.message).join(', '),
+        message: parsed.error.errors.map((e) => e.message).join(', '),
       });
     }
 
     const { postIds } = parsed.data;
-    const deletedPosts = await RecentDeleteService.permanentlyDeleteMultiplePosts(postIds);
+    const deletedPosts =
+      await RecentDeleteService.permanentlyDeleteMultiplePosts(postIds);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

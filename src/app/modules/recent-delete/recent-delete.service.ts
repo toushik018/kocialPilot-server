@@ -2,7 +2,10 @@ import { SortOrder } from 'mongoose';
 import { paginationHelpers } from '../../helpers/paginationHelper';
 import { IGenericResponse } from '../../interface/common';
 import { IPaginationOptions } from '../../interface/pagination';
-import { IMongoPost, IMongoPostFilters } from '../mongo-posts/mongo-posts.interface';
+import {
+  IMongoPost,
+  IMongoPostFilters,
+} from '../mongo-posts/mongo-posts.interface';
 import { Post } from '../mongo-posts/mongo-posts.model';
 import { cloudinary } from '../../middlewares/multer';
 
@@ -35,7 +38,9 @@ const getRecentlyDeletedPosts = async (
 
   if (Object.keys(filtersData).length) {
     andConditions.push({
-      $and: Object.entries(filtersData).map(([field, value]) => ({ [field]: value })),
+      $and: Object.entries(filtersData).map(([field, value]) => ({
+        [field]: value,
+      })),
     });
   }
 
@@ -45,7 +50,8 @@ const getRecentlyDeletedPosts = async (
   const sortConditions: { [key: string]: SortOrder } = {};
   if (sortBy && sortOrder) sortConditions[sortBy] = sortOrder;
 
-  const whereConditions = andConditions.length > 0 ? { $and: andConditions } : {};
+  const whereConditions =
+    andConditions.length > 0 ? { $and: andConditions } : {};
 
   const result = await Post.find(whereConditions)
     .sort(sortConditions)
@@ -71,7 +77,9 @@ const restorePost = async (id: string): Promise<IMongoPost | null> => {
 };
 
 // Permanently delete a post (hard delete with Cloudinary cleanup)
-const permanentlyDeletePost = async (id: string): Promise<IMongoPost | null> => {
+const permanentlyDeletePost = async (
+  id: string
+): Promise<IMongoPost | null> => {
   // First get the post to check for Cloudinary assets
   const post = await Post.findById(id);
   if (!post) return null;
@@ -106,8 +114,13 @@ const permanentlyDeletePost = async (id: string): Promise<IMongoPost | null> => 
 };
 
 // Restore multiple posts
-const restoreMultiplePosts = async (postIds: string[]): Promise<IMongoPost[]> => {
-  await Post.updateMany({ _id: { $in: postIds }, isDeleted: true }, { isDeleted: false });
+const restoreMultiplePosts = async (
+  postIds: string[]
+): Promise<IMongoPost[]> => {
+  await Post.updateMany(
+    { _id: { $in: postIds }, isDeleted: true },
+    { isDeleted: false }
+  );
   const updatedPosts = await Post.find({ _id: { $in: postIds } });
   return updatedPosts;
 };

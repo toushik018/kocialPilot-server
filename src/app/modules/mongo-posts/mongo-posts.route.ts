@@ -17,24 +17,7 @@ router.post(
   MongoPostController.uploadImagePost
 );
 
-// Get optimal schedule time
-router.get(
-  '/optimal-schedule-time',
-  MongoPostController.getOptimalScheduleTime
-);
-
-// Reschedule a post
-router.patch('/:id/reschedule', auth(), MongoPostController.reschedulePost);
-
-// Schedule multiple draft posts
-router.post('/schedule-drafts', auth(), MongoPostController.scheduleDraftPosts);
-
-// Schedule single draft post
-router.post(
-  '/schedule-single/:id',
-  auth(),
-  MongoPostController.scheduleSingleDraftPost
-);
+// Scheduling routes moved to schedule module
 
 // Get posts by specific date
 router.get('/by-date/:date', MongoPostController.getPostsByDate);
