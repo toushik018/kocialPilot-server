@@ -93,8 +93,8 @@ app.use('/api/v1', router);
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'Welcome to Kocial Pilot API',
-    version: '1.0.0',
+    message: 'Welcome to Kocial Pilot API V2',
+    version: '2.0.0',
     description: 'Social media management and automation platform',
     docs: '/api/docs',
     redoc: '/api/redoc',
