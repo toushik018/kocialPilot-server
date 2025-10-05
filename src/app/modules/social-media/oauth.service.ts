@@ -129,9 +129,10 @@ export class OAuthService {
   static getInstagramAuthUrl(userId: string): string {
     const state = this.generateState(userId, 'instagram');
     const params = new URLSearchParams({
-      client_id: process.env.INSTAGRAM_APP_ID!,
+      client_id: process.env.FACEBOOK_APP_ID!,
       redirect_uri: process.env.INSTAGRAM_REDIRECT_URI!,
-      scope: 'instagram_content_publish,instagram_manage_insights',
+      scope:
+        'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_content_publish,instagram_manage_insights',
       response_type: 'code',
       state,
     });
@@ -154,7 +155,7 @@ export class OAuthService {
         'https://graph.facebook.com/v18.0/oauth/access_token',
         {
           params: {
-            client_id: process.env.INSTAGRAM_APP_ID,
+            client_id: process.env.FACEBOOK_APP_ID,
             client_secret: process.env.INSTAGRAM_APP_SECRET,
             redirect_uri: process.env.INSTAGRAM_REDIRECT_URI,
             code,
@@ -164,12 +165,46 @@ export class OAuthService {
 
       const { access_token } = tokenResponse.data;
 
+      // Exchange short-lived token for long-lived token (60 days)
+      let longLivedToken = access_token as string;
+      try {
+        const longLivedResp = await axios.get(
+          'https://graph.facebook.com/v18.0/oauth/access_token',
+          {
+            params: {
+              grant_type: 'fb_exchange_token',
+              client_id: process.env.INSTAGRAM_APP_ID,
+              client_secret: process.env.INSTAGRAM_APP_SECRET,
+              fb_exchange_token: access_token,
+            },
+          }
+        );
+        if (longLivedResp.data?.access_token) {
+          longLivedToken = longLivedResp.data.access_token;
+        }
+      } catch (error) {
+        // Fallback to short-lived token if exchange fails
+        // eslint-disable-next-line no-console
+        console.warn(
+          'IG long-lived token exchange failed, using short-lived token'
+        );
+        console.error(
+          'IG long-lived token exchange failed, using short-lived token',
+          error
+        );
+      }
+
+      // Compute token expiry (approx 60 days); Meta returns expires_in sometimes
+      const nowMs = Date.now();
+      const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
+      const tokenExpiry = new Date(nowMs + sixtyDaysMs);
+
       // Get Instagram business accounts
       const accountsResponse = await axios.get(
         'https://graph.facebook.com/me/accounts',
         {
           params: {
-            access_token,
+            access_token: longLivedToken,
             fields: 'instagram_business_account',
           },
         }
@@ -197,7 +232,7 @@ export class OAuthService {
         `https://graph.facebook.com/${instagramAccountId}`,
         {
           params: {
-            access_token,
+            access_token: longLivedToken,
             fields: 'id,username,profile_picture_url',
           },
         }
@@ -217,9 +252,10 @@ export class OAuthService {
         account = (await SocialMediaAccount.findByIdAndUpdate(
           existingAccount._id,
           {
-            accessToken: access_token,
+            accessToken: longLivedToken,
             isConnected: true,
             accountName: username,
+            tokenExpiry,
           },
           { new: true }
         )) as ISocialMediaAccount;
@@ -228,9 +264,10 @@ export class OAuthService {
           platform: 'instagram',
           accountName: username,
           accountId: id,
-          accessToken: access_token,
+          accessToken: longLivedToken,
           isConnected: true,
           owner: parsedState.userId,
+          tokenExpiry,
         });
       }
 
