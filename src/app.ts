@@ -35,6 +35,8 @@ const corsConfig = {
       // Production URLs (update these with your actual domains)
       'https://kocial-pilot-client.vercel.app',
       'https://*.kocial-pilot.vercel.app',
+      'http://app.kocial.de',
+      'https://app.kocial.de',
       // Environment-based frontend URL
       process.env.FRONTEND_URL,
     ].filter(Boolean);
